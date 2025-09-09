@@ -1,7 +1,32 @@
-bin/ 
-obj/ 
-.vs/ 
-*.user 
-*.suo 
-*.log 
-/packages 
+# Build results
+bin/
+obj/
+[Bb]uild/
+[Bb]uilds/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Logs
+*.log
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+*.nuget.props
+*.nuget.targets
+
+# Others
+[Tt]est[Rr]esult*/
+[Dd]ebug*/
+[Rr]elease*/
+x64/
+x86/
+*.dbmdl
+*.jfm
+*.pdb
