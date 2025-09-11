@@ -1,11 +1,5 @@
 ﻿namespace RestaurantManagement.Domain.Entities
 {
-    public enum PaymentMethod
-    {
-        Cash,
-        Card
-    }
-
     public enum PaymentStatus
     {
         Pending,
@@ -19,8 +13,6 @@
 
         public int OrderId { get; set; }
         public Order Order { get; set; } = null!;
-
-        public PaymentMethod Method { get; set; } = PaymentMethod.Cash;
 
         public decimal Amount { get; set; }
         public PaymentStatus Status { get; set; } = PaymentStatus.Pending;
