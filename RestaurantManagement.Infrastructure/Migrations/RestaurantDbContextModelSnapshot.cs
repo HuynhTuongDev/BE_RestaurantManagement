@@ -58,7 +58,10 @@ namespace RestaurantManagement.Infrastructure.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("MenuItems");
+                    b.ToTable("MenuItems", t =>
+                        {
+                            t.HasCheckConstraint("CK_MenuItem_Price", "\"Price\" >= 0");
+                        });
                 });
 
             modelBuilder.Entity("RestaurantManagement.Domain.Entities.Order", b =>
@@ -91,11 +94,14 @@ namespace RestaurantManagement.Infrastructure.Migrations
 
                     b.HasIndex("Status");
 
-                    b.HasIndex("UserId");
-
                     b.HasIndex("TableId", "OrderTime");
 
-                    b.ToTable("Orders");
+                    b.HasIndex("UserId", "OrderTime");
+
+                    b.ToTable("Orders", t =>
+                        {
+                            t.HasCheckConstraint("CK_Order_TotalAmount", "\"TotalAmount\" >= 0");
+                        });
                 });
 
             modelBuilder.Entity("RestaurantManagement.Domain.Entities.OrderDetail", b =>
@@ -125,7 +131,95 @@ namespace RestaurantManagement.Infrastructure.Migrations
 
                     b.HasIndex("OrderId", "MenuItemId");
 
-                    b.ToTable("OrderDetails");
+                    b.ToTable("OrderDetails", t =>
+                        {
+                            t.HasCheckConstraint("CK_OrderDetail_Price", "\"Price\" >= 0");
+
+                            t.HasCheckConstraint("CK_OrderDetail_Quantity", "\"Quantity\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("RestaurantManagement.Domain.Entities.Payment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<int>("OrderId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("PaymentDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("PaymentDate");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("Status", "PaymentDate");
+
+                    b.ToTable("Payments", t =>
+                        {
+                            t.HasCheckConstraint("CK_Payment_Amount", "\"Amount\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("RestaurantManagement.Domain.Entities.PaymentDetail", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<string>("ExtraInfo")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Method")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("PaymentId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Provider")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("TransactionCode")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Method");
+
+                    b.HasIndex("PaymentId");
+
+                    b.HasIndex("Provider");
+
+                    b.HasIndex("TransactionCode");
+
+                    b.ToTable("PaymentDetails", t =>
+                        {
+                            t.HasCheckConstraint("CK_PaymentDetail_Amount", "\"Amount\" > 0");
+                        });
                 });
 
             modelBuilder.Entity("RestaurantManagement.Domain.Entities.Promotion", b =>
@@ -167,7 +261,12 @@ namespace RestaurantManagement.Infrastructure.Migrations
 
                     b.HasIndex("StartDate", "EndDate");
 
-                    b.ToTable("Promotions");
+                    b.ToTable("Promotions", t =>
+                        {
+                            t.HasCheckConstraint("CK_Promotion_Dates", "\"EndDate\" > \"StartDate\"");
+
+                            t.HasCheckConstraint("CK_Promotion_Discount", "\"Discount\" >= 0 AND \"Discount\" <= 100");
+                        });
                 });
 
             modelBuilder.Entity("RestaurantManagement.Domain.Entities.Reservation", b =>
@@ -199,11 +298,78 @@ namespace RestaurantManagement.Infrastructure.Migrations
 
                     b.HasIndex("Status");
 
-                    b.HasIndex("UserId");
-
                     b.HasIndex("TableId", "ReservationTime");
 
-                    b.ToTable("Reservations");
+                    b.HasIndex("UserId", "ReservationTime");
+
+                    b.ToTable("Reservations", t =>
+                        {
+                            t.HasCheckConstraint("CK_Reservation_NumberOfGuests", "\"NumberOfGuests\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("RestaurantManagement.Domain.Entities.RestaurantManagement.Domain.Entities.Feedback", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsApproved")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<int?>("MenuItemId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("OrderId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("RepliedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Reply")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("IsApproved");
+
+                    b.HasIndex("MenuItemId");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("Rating");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("Feedbacks", t =>
+                        {
+                            t.HasCheckConstraint("CK_Feedback_Rating", "\"Rating\" >= 1 AND \"Rating\" <= 5");
+                        });
                 });
 
             modelBuilder.Entity("RestaurantManagement.Domain.Entities.RestaurantTable", b =>
@@ -234,7 +400,10 @@ namespace RestaurantManagement.Infrastructure.Migrations
                     b.HasIndex("TableNumber")
                         .IsUnique();
 
-                    b.ToTable("RestaurantTables");
+                    b.ToTable("RestaurantTables", t =>
+                        {
+                            t.HasCheckConstraint("CK_RestaurantTable_Seats", "\"Seats\" > 0");
+                        });
                 });
 
             modelBuilder.Entity("RestaurantManagement.Domain.Entities.StaffProfile", b =>
@@ -272,6 +441,10 @@ namespace RestaurantManagement.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -285,13 +458,28 @@ namespace RestaurantManagement.Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<string>("Phone")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<int>("Role")
                         .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
@@ -300,7 +488,13 @@ namespace RestaurantManagement.Infrastructure.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
+                    b.HasIndex("IsDeleted");
+
+                    b.HasIndex("Phone");
+
                     b.HasIndex("Role");
+
+                    b.HasIndex("Status");
 
                     b.ToTable("Users");
                 });
@@ -343,6 +537,28 @@ namespace RestaurantManagement.Infrastructure.Migrations
                     b.Navigation("Order");
                 });
 
+            modelBuilder.Entity("RestaurantManagement.Domain.Entities.Payment", b =>
+                {
+                    b.HasOne("RestaurantManagement.Domain.Entities.Order", "Order")
+                        .WithMany("Payments")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("RestaurantManagement.Domain.Entities.PaymentDetail", b =>
+                {
+                    b.HasOne("RestaurantManagement.Domain.Entities.Payment", "Payment")
+                        .WithMany("PaymentDetails")
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Payment");
+                });
+
             modelBuilder.Entity("RestaurantManagement.Domain.Entities.Reservation", b =>
                 {
                     b.HasOne("RestaurantManagement.Domain.Entities.RestaurantTable", "Table")
@@ -358,6 +574,31 @@ namespace RestaurantManagement.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Table");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("RestaurantManagement.Domain.Entities.RestaurantManagement.Domain.Entities.Feedback", b =>
+                {
+                    b.HasOne("RestaurantManagement.Domain.Entities.MenuItem", "MenuItem")
+                        .WithMany()
+                        .HasForeignKey("MenuItemId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("RestaurantManagement.Domain.Entities.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("RestaurantManagement.Domain.Entities.User", "User")
+                        .WithMany("Feedbacks")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("MenuItem");
+
+                    b.Navigation("Order");
 
                     b.Navigation("User");
                 });
@@ -381,6 +622,13 @@ namespace RestaurantManagement.Infrastructure.Migrations
             modelBuilder.Entity("RestaurantManagement.Domain.Entities.Order", b =>
                 {
                     b.Navigation("OrderDetails");
+
+                    b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("RestaurantManagement.Domain.Entities.Payment", b =>
+                {
+                    b.Navigation("PaymentDetails");
                 });
 
             modelBuilder.Entity("RestaurantManagement.Domain.Entities.RestaurantTable", b =>
@@ -392,6 +640,8 @@ namespace RestaurantManagement.Infrastructure.Migrations
 
             modelBuilder.Entity("RestaurantManagement.Domain.Entities.User", b =>
                 {
+                    b.Navigation("Feedbacks");
+
                     b.Navigation("Orders");
 
                     b.Navigation("Reservations");

@@ -20,6 +20,7 @@
         public User User { get; set; } = null!;
         public RestaurantTable Table { get; set; } = null!;
         public ICollection<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();
+        public ICollection<Payment> Payments { get; set; } = new List<Payment>();
     }
 
 }

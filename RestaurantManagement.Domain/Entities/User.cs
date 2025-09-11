@@ -38,7 +38,6 @@ namespace RestaurantManagement.Domain.Entities
         public ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
         public ICollection<Order> Orders { get; set; } = new List<Order>();
         public ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
-        public ICollection<Cart> Carts { get; set; } = new List<Cart>();
     }
 
 }
