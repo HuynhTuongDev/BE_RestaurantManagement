@@ -19,6 +19,13 @@ namespace RestaurantManagement.Domain.DTOs
         [Required]
         [MaxLength(100)]
         public string FullName { get; set; } = string.Empty;
+        [Required]
+        [Phone]
+        public string? Phone { get; set; }
+
+        [Required]
+        [MaxLength(200)]
+        public string? Address { get; set; }
 
     }
 
@@ -48,9 +55,16 @@ namespace RestaurantManagement.Domain.DTOs
 
     public class UserDto
     {
-        public int Id { get; set; } // Changed from long to int to match User entity
+        public int Id { get; set; }
         public string Email { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
+        public string? Phone { get; set; }
+        public string? Address { get; set; }
+        public string Role { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        public bool IsDeleted { get; set; }
     }
 
     public class UpdateProfileRequest
@@ -58,6 +72,12 @@ namespace RestaurantManagement.Domain.DTOs
         [Required]
         [MaxLength(100)]
         public string FullName { get; set; } = string.Empty;
+        [Required]
+        [Phone]
+        public string? Phone { get; set; }
+        [Required]
+        [MaxLength(200)]
+        public string? Address { get; set; }
     }
 
     public class ChangePasswordRequest

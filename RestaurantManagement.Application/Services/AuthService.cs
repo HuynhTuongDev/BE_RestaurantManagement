@@ -31,6 +31,8 @@ namespace RestaurantManagement.Application.Services
                 Email = request.Email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 FullName = request.FullName,
+                Phone = request.Phone,
+                Address = request.Address,
                 Role = UserRole.Customer,
                 CreatedAt = DateTime.UtcNow
             };
@@ -122,6 +124,8 @@ namespace RestaurantManagement.Application.Services
                 return new AuthResponse { Success = false, Message = "User not found" };
 
             user.FullName = request.FullName;
+            user.Phone = request.Phone;
+            user.Address = request.Address;
             await _userRepository.UpdateAsync(user);
 
             return new AuthResponse
@@ -159,7 +163,13 @@ namespace RestaurantManagement.Application.Services
             {
                 Id = user.Id,
                 FullName = user.FullName,
-                Email = user.Email
+                Email = user.Email,
+                Phone = user.Phone,
+                Address = user.Address,
+                Role = user.Role.ToString(),
+                Status = user.Status.ToString(),
+                UpdatedAt = user.UpdatedAt,
+                CreatedAt = user.CreatedAt,
             };
         }
     }

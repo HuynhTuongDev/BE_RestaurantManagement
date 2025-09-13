@@ -38,5 +38,22 @@ namespace RestaurantManagement.Infrastructure.Repositories
         {
             await _context.SaveChangesAsync();
         }
+        public async Task<bool> SoftDeleteUserAsync(int userId)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return false;
+            user.IsDeleted = true;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> LockUserAsync(int userId)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return false;
+            user.Status = UserStatus.Suspended;
+            await _context.SaveChangesAsync();
+            return true;
+        }
     }
 }
