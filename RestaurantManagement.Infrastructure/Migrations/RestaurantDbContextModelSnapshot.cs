@@ -64,6 +64,29 @@ namespace RestaurantManagement.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("RestaurantManagement.Domain.Entities.MenuItemImage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("MenuItemId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MenuItemId");
+
+                    b.ToTable("MenuItemImages");
+                });
+
             modelBuilder.Entity("RestaurantManagement.Domain.Entities.Order", b =>
                 {
                     b.Property<int>("Id")
@@ -499,6 +522,17 @@ namespace RestaurantManagement.Infrastructure.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("RestaurantManagement.Domain.Entities.MenuItemImage", b =>
+                {
+                    b.HasOne("RestaurantManagement.Domain.Entities.MenuItem", "MenuItem")
+                        .WithMany("Images")
+                        .HasForeignKey("MenuItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MenuItem");
+                });
+
             modelBuilder.Entity("RestaurantManagement.Domain.Entities.Order", b =>
                 {
                     b.HasOne("RestaurantManagement.Domain.Entities.RestaurantTable", "Table")
@@ -608,7 +642,7 @@ namespace RestaurantManagement.Infrastructure.Migrations
                     b.HasOne("RestaurantManagement.Domain.Entities.User", "User")
                         .WithOne("StaffProfile")
                         .HasForeignKey("RestaurantManagement.Domain.Entities.StaffProfile", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("User");
@@ -616,6 +650,8 @@ namespace RestaurantManagement.Infrastructure.Migrations
 
             modelBuilder.Entity("RestaurantManagement.Domain.Entities.MenuItem", b =>
                 {
+                    b.Navigation("Images");
+
                     b.Navigation("OrderDetails");
                 });
 

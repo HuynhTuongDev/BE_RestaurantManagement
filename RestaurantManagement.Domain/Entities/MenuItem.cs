@@ -15,7 +15,7 @@
         public string? Category { get; set; }
         public MenuItemStatus Status { get; set; } = MenuItemStatus.Available;
 
+        public ICollection<MenuItemImage> Images { get; set; } = new List<MenuItemImage>();
         public ICollection<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();
     }
-
 }

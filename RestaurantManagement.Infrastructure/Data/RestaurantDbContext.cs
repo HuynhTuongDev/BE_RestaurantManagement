@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Entities.RestaurantManagement.Domain.Entities;
 
@@ -7,11 +8,12 @@ namespace RestaurantManagement.Infrastructure.Data
     public class RestaurantDbContext : DbContext
     {
         public RestaurantDbContext(DbContextOptions<RestaurantDbContext> options) : base(options) { }
-        
+
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<StaffProfile> StaffProfiles { get; set; } = null!;
         public DbSet<RestaurantTable> RestaurantTables { get; set; } = null!;
         public DbSet<MenuItem> MenuItems { get; set; } = null!;
+        public DbSet<MenuItemImage> MenuItemImages { get; set; } = null!;
         public DbSet<Reservation> Reservations { get; set; } = null!;
         public DbSet<Order> Orders { get; set; } = null!;
         public DbSet<OrderDetail> OrderDetails { get; set; } = null!;
@@ -48,9 +50,6 @@ namespace RestaurantManagement.Infrastructure.Data
                 entity.HasIndex(u => u.CreatedAt);
                 entity.HasIndex(u => u.Phone);
                 entity.HasIndex(u => u.IsDeleted);
-
-                // Global query filter for soft delete
-                entity.HasQueryFilter(u => !u.IsDeleted);
             });
 
             // StaffProfile Configuration
@@ -104,6 +103,20 @@ namespace RestaurantManagement.Infrastructure.Data
                 entity.HasIndex(m => m.Category);
                 entity.HasIndex(m => m.Status);
                 entity.HasIndex(m => m.Name);
+            });
+            // MenuItemImage Configuration
+            modelBuilder.Entity<MenuItemImage>(entity =>
+            {
+                entity.HasKey(mi => mi.Id);
+                entity.Property(mi => mi.ImageUrl).IsRequired().HasMaxLength(1000);
+
+                entity.HasIndex(mi => mi.MenuItemId);
+
+                // Quan hệ 1-nhiều
+                entity.HasOne(mi => mi.MenuItem)
+                      .WithMany(m => m.Images)
+                      .HasForeignKey(mi => mi.MenuItemId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             // Reservation Configuration
@@ -273,7 +286,7 @@ namespace RestaurantManagement.Infrastructure.Data
                 .HasOne(u => u.StaffProfile)
                 .WithOne(s => s.User)
                 .HasForeignKey<StaffProfile>(s => s.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
 
             // 1-n relationships
             modelBuilder.Entity<User>()
@@ -323,6 +336,12 @@ namespace RestaurantManagement.Infrastructure.Data
                 .WithOne(od => od.MenuItem)
                 .HasForeignKey(od => od.MenuItemId)
                 .OnDelete(DeleteBehavior.Restrict);
+            // Optional relationships for 
+            modelBuilder.Entity<MenuItemImage>()
+                .HasOne(mi => mi.MenuItem)
+                .WithMany(m => m.Images)
+                .HasForeignKey(mi => mi.MenuItemId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Payment>()
                 .HasMany(p => p.PaymentDetails)
