@@ -1,12 +1,16 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using CloudinaryDotNet;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using RestaurantManagement.Application.Services;
+using RestaurantManagement.Application.Settings;
 using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
 using RestaurantManagement.Infrastructure.Data;
 using RestaurantManagement.Infrastructure.Repositories;
+using RestaurantManagement.Infrastructure.Services;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -42,6 +46,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+// Cloudinary settings
+builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("Cloudinary"));
+
+// Register Cloudinary and ImageService
+builder.Services.AddSingleton(sp =>
+{
+    var cfg = sp.GetRequiredService<IOptions<CloudinarySettings>>().Value;
+    var account = new Account(cfg.CloudName, cfg.ApiKey, cfg.ApiSecret);
+    return new Cloudinary(account) { Api = { Secure = true } };
+});
+
+
+// Register MenuItemImageService (implementation in Infrastructure)
+builder.Services.AddScoped<IMenuItemImageService, MenuItemImageService>();
+
 // Authorization
 builder.Services.AddAuthorization();
 
@@ -57,6 +76,9 @@ builder.Services.AddDbContext<RestaurantDbContext>(options =>
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IImageService, ImageService>();
+builder.Services.AddScoped<IMenuItemRepository, MenuItemRepository>();
+builder.Services.AddScoped<IMenuItemImageRepository, MenuItemImageRepository>();
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
