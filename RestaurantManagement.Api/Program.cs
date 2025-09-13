@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using RestaurantManagement.Application.Services;
+using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
 using RestaurantManagement.Infrastructure.Data;
 using RestaurantManagement.Infrastructure.Repositories;
@@ -70,7 +71,7 @@ builder.Services.AddSwaggerGen(options =>
 
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme. Example: 'Bearer 12345abcdef'",
+        Description = "JWT Authorization header using the Bearer scheme. Example: 'Bearer hjfsdsjhgdgvfdshg'",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.Http,
@@ -91,7 +92,29 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+var adminConfig = builder.Configuration.GetSection("AdminAccount");
+var adminEmail = adminConfig["Email"] ?? throw new InvalidOperationException("Admin email configuration is missing.");
+var adminPassword = adminConfig["Password"] ?? throw new InvalidOperationException("Admin password configuration is missing.");
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<RestaurantDbContext>();
+    if (!db.Users.Any(u => u.Email == adminEmail))
+    {
+        var admin = new User
+        {
+            FullName = "Admin",
+            Email = adminEmail,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword),
+            Role = UserRole.Admin,
+            Status = UserStatus.Active,
+            CreatedAt = DateTime.UtcNow,
+            IsDeleted = false
+        };
+        db.Users.Add(admin);
+        db.SaveChanges();
+    }
+}
 // Developer exception page
 if (app.Environment.IsDevelopment())
 {
@@ -100,7 +123,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(options =>
     {
         options.SwaggerEndpoint("/swagger/v1/swagger.json", "Restaurant Management API v1");
-        options.RoutePrefix = string.Empty; // truy cập tại /
+        options.RoutePrefix = string.Empty;
     });
 }
 
