@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace RestaurantManagement.Domain.DTOs
+namespace RestaurantManagement.Domain.DTOs.UserDTOs
 {
     public class RegisterRequest
     {

@@ -1,14 +1,10 @@
-using Microsoft.Extensions.Logging;
 using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
+using Microsoft.Extensions.Logging;
 using RestaurantManagement.Application.Services;
+using RestaurantManagement.Application.Services.System;
 using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace RestaurantManagement.Infrastructure.Services
 {
@@ -70,10 +66,10 @@ namespace RestaurantManagement.Infrastructure.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to save MenuItemImage to database. Attempting cleanup for {ImageUrl}", imageUrl);
-                
+
                 // Cleanup uploaded image from Cloudinary
                 await CleanupImageAsync(imageUrl);
-                
+
                 throw new InvalidOperationException("Failed to save image record", ex);
             }
         }
@@ -87,7 +83,7 @@ namespace RestaurantManagement.Infrastructure.Services
                 {
                     var deleteParams = new DeletionParams(publicId);
                     var deleteResult = await _cloudinary.DestroyAsync(deleteParams);
-                    
+
                     if (deleteResult?.Result == "ok")
                     {
                         _logger.LogInformation("Successfully cleaned up Cloudinary image: {PublicId}", publicId);
@@ -110,7 +106,7 @@ namespace RestaurantManagement.Infrastructure.Services
             {
                 var uri = new Uri(url);
                 var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-                
+
                 if (segments.Length == 0) return null;
 
                 // Find the segment after 'upload' (Cloudinary URL structure)
@@ -119,7 +115,7 @@ namespace RestaurantManagement.Infrastructure.Services
 
                 // Skip version if present (v1234567890)
                 var startIndex = uploadIndex + 1;
-                if (startIndex < segments.Length && segments[startIndex].StartsWith("v") && 
+                if (startIndex < segments.Length && segments[startIndex].StartsWith("v") &&
                     segments[startIndex].Length > 1 && segments[startIndex].Substring(1).All(char.IsDigit))
                 {
                     startIndex++;
@@ -130,7 +126,7 @@ namespace RestaurantManagement.Infrastructure.Services
                 // Get remaining segments (folder + filename)
                 var pathSegments = segments.Skip(startIndex);
                 var fullPath = string.Join("/", pathSegments);
-                
+
                 // Remove file extension
                 var dotIndex = fullPath.LastIndexOf('.');
                 return dotIndex > 0 ? fullPath.Substring(0, dotIndex) : fullPath;

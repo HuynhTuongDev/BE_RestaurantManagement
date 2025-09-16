@@ -1,6 +1,6 @@
-﻿using RestaurantManagement.Domain.DTOs;
+﻿using RestaurantManagement.Domain.DTOs.UserDTOs;
 
-namespace RestaurantManagement.Domain.Interfaces
+namespace RestaurantManagement.Application.Services.IUserService
 {
     public interface IAuthService
     {

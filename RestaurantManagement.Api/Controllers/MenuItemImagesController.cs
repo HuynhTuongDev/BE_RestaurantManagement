@@ -1,11 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RestaurantManagement.Application.Services;
-using RestaurantManagement.Domain.Entities;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace RestaurantManagement.Api.Controllers
 {
     [ApiController]
@@ -76,6 +71,7 @@ namespace RestaurantManagement.Api.Controllers
         public async Task<IActionResult> GetImage(int menuItemId, int imageId)
         {
             // This endpoint can be implemented later when needed
+            await Task.CompletedTask; // Fixes CS1998 by adding an await
             return NotFound(new { message = "Endpoint not implemented" });
         }
     }

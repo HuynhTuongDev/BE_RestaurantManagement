@@ -2,13 +2,8 @@ using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
 using Microsoft.Extensions.Options;
 using RestaurantManagement.Application.Settings;
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
-namespace RestaurantManagement.Application.Services
+namespace RestaurantManagement.Application.Services.System
 {
     public interface IImageService
     {

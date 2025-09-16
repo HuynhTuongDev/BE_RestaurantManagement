@@ -5,12 +5,15 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using RestaurantManagement.Application.Services;
+using RestaurantManagement.Application.Services.IUserService;
+using RestaurantManagement.Application.Services.System;
 using RestaurantManagement.Application.Settings;
 using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
 using RestaurantManagement.Infrastructure.Data;
 using RestaurantManagement.Infrastructure.Repositories;
 using RestaurantManagement.Infrastructure.Services;
+using RestaurantManagement.Infrastructure.Services.UserServices;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -58,6 +61,8 @@ builder.Services.AddSingleton(sp =>
     return new Cloudinary(account) { Api = { Secure = true } };
 });
 
+// Register ImageService implementation
+builder.Services.AddScoped<IImageService, ImageService>();
 
 // Register MenuItemImageService (implementation in Infrastructure)
 builder.Services.AddScoped<IMenuItemImageService, MenuItemImageService>();
@@ -77,9 +82,12 @@ builder.Services.AddDbContext<RestaurantDbContext>(options =>
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<IMenuItemRepository, MenuItemRepository>();
 builder.Services.AddScoped<IMenuItemImageRepository, MenuItemImageRepository>();
+
+// Staff and Customer Services (using Infrastructure implementations)
+builder.Services.AddScoped<IStaffService, StaffService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
