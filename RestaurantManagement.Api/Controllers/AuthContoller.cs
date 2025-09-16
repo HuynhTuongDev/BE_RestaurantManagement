@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RestaurantManagement.Domain.DTOs;
+using RestaurantManagement.Application.Services.IUserService;
+using RestaurantManagement.Domain.DTOs.UserDTOs;
 using RestaurantManagement.Domain.Interfaces;
 using System.Security.Claims;
 

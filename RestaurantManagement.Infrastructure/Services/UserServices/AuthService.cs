@@ -1,10 +1,12 @@
 ﻿using Google.Apis.Auth;
 using Microsoft.Extensions.Configuration;
-using RestaurantManagement.Domain.DTOs;
+using RestaurantManagement.Application.Services.System;
+using RestaurantManagement.Application.Services.IUserService;
+using RestaurantManagement.Domain.DTOs.UserDTOs;
 using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
 
-namespace RestaurantManagement.Application.Services
+namespace RestaurantManagement.Infrastructure.Services.UserServices
 {
     public class AuthService : IAuthService
     {
