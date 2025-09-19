@@ -10,5 +10,6 @@ namespace RestaurantManagement.Application.Services.IUserService
         Task<AuthResponse> UpdateProfileAsync(int userId, UpdateProfileRequest request);
         Task<AuthResponse> ChangePasswordAsync(int userId, ChangePasswordRequest request);
         Task<UserDto?> GetUserProfileAsync(int userId);
+        Task<AuthResponse> UpdatePasswordAsync(string email, ResetPasswordRequest request);
     }
 }

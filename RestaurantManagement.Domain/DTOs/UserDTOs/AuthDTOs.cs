@@ -93,4 +93,21 @@ namespace RestaurantManagement.Domain.DTOs.UserDTOs
         [Compare("NewPassword")]
         public string ConfirmNewPassword { get; set; } = string.Empty;
     }
+    public class ForgotPasswordRequest
+    {
+        [Required]
+        public string Email { get; set; } = string.Empty;
+    }
+    public class ResetPasswordRequest
+    {
+        [Required]
+        public string NewPassword { get; set; }
+
+        [Required]
+        [Compare("NewPassword", ErrorMessage = "Password confirmation does not match")]
+        public string ConfirmPassword { get; set; }
+
+        [Required]
+        public string Token { get; set; }
+    }
 }
