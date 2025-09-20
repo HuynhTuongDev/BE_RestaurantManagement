@@ -10,8 +10,8 @@ namespace RestaurantManagement.Application.Services.System
     public interface IJwtService
     {
         string GenerateToken(User user, string tokenType);
-        ClaimsPrincipal ValidateToken(string token, string tokenType)
-;    }
+        ClaimsPrincipal? ValidateToken(string token, string tokenType);
+    }
 
     public class JwtService : IJwtService
     {

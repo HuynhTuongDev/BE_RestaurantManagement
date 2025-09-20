@@ -1,5 +1,4 @@
-﻿using BackEnd.Service.ServiceImpl;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RestaurantManagement.Application.Services.IUserService;
 using RestaurantManagement.Application.Services.System;
@@ -145,6 +144,10 @@ namespace RestaurantManagement.Api.Controllers
             }
 
             var email = claimsPrincipal.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+            {
+                return BadRequest("Invalid token - missing email claim.");
+            }
 
             var result = await _authService.UpdatePasswordAsync(email, resetRequest);
             if (result.Success)

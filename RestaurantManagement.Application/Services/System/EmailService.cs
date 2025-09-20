@@ -5,7 +5,7 @@ using RestaurantManagement.Application.Services.System;
 using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
 
-namespace BackEnd.Service.ServiceImpl
+namespace RestaurantManagement.Application.Services.System
 {
     public interface IEmailService
     {
@@ -28,8 +28,14 @@ namespace BackEnd.Service.ServiceImpl
             var token = _jWTService.GenerateToken(user,"Reset");
             var clientUrl = _configuration["AppSettings:ClientUrl"];
             var resetLink = $"{clientUrl}/reset-password/{token}";
-            var projectRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..\\..\\..\\..\\"));
-            var templatePath = Path.Combine(projectRoot, "RestaurantManagement.Application", "Templates", "ResetPasswordTemplate.html");
+            
+            // Try to find template file in multiple possible locations
+            var templatePath = FindTemplateFile("ResetPasswordTemplate.html");
+            if (templatePath == null)
+            {
+                throw new FileNotFoundException("Email template file not found");
+            }
+            
             var emailTemplate = await File.ReadAllTextAsync(templatePath);
 
 
@@ -38,16 +44,18 @@ namespace BackEnd.Service.ServiceImpl
                 .Replace("{{ResetLink}}", resetLink);
 
             var message = new MimeMessage();
-            message.From.Add(new MailboxAddress("Restaurant", "lehuynhtuong9a2@gmail.com"));
+            var fromEmail = _configuration["SmtpSettings:FromEmail"];
+            var fromName = _configuration["SmtpSettings:FromName"] ?? "Restaurant Management";
+            message.From.Add(new MailboxAddress(fromName, fromEmail));
             message.To.Add(new MailboxAddress("", user.Email));
-            message.Subject = "Activate your account";
+            message.Subject = "Reset Your Password";
             message.Body = new TextPart("html") { Text = emailTemplate };
 
             using (var client = new SmtpClient())
             {
 
                 await client.ConnectAsync(_configuration["SmtpSettings:Server"],
-                                  int.Parse(_configuration["SmtpSettings:Port"]),
+                                  int.Parse(_configuration["SmtpSettings:Port"] ?? "587"),
                                   MailKit.Security.SecureSocketOptions.StartTls);
 
                 await client.AuthenticateAsync(
@@ -67,6 +75,19 @@ namespace BackEnd.Service.ServiceImpl
                     client.Disconnect(true);
                 }
             }
+        }
+
+        private string? FindTemplateFile(string templateFileName)
+        {
+            // Try multiple possible locations for the template file
+            var possiblePaths = new[]
+            {
+                Path.Combine(AppContext.BaseDirectory, "Templates", templateFileName),
+                Path.Combine(Directory.GetCurrentDirectory(), "Templates", templateFileName),
+                Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "RestaurantManagement.Application", "Templates", templateFileName)
+            };
+
+            return possiblePaths.FirstOrDefault(File.Exists);
         }
     }
 }

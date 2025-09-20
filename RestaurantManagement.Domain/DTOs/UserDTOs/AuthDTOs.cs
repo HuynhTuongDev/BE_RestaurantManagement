@@ -2,6 +2,25 @@
 
 namespace RestaurantManagement.Domain.DTOs.UserDTOs
 {
+    public class PhoneAttribute : ValidationAttribute
+    {
+        public override bool IsValid(object? value)
+        {
+            if (value == null) return true; // Allow null values, use [Required] for required validation
+            
+            var phone = value.ToString();
+            if (string.IsNullOrWhiteSpace(phone)) return true;
+            
+            // Basic phone validation - adjust regex as needed for your requirements
+            return System.Text.RegularExpressions.Regex.IsMatch(phone, @"^[\+]?[1-9][\d]{0,15}$");
+        }
+
+        public override string FormatErrorMessage(string name)
+        {
+            return $"The {name} field must be a valid phone number.";
+        }
+    }
+
     public class RegisterRequest
     {
         [Required]
@@ -93,21 +112,25 @@ namespace RestaurantManagement.Domain.DTOs.UserDTOs
         [Compare("NewPassword")]
         public string ConfirmNewPassword { get; set; } = string.Empty;
     }
+    
     public class ForgotPasswordRequest
     {
         [Required]
+        [EmailAddress]
         public string Email { get; set; } = string.Empty;
     }
+    
     public class ResetPasswordRequest
     {
         [Required]
-        public string NewPassword { get; set; }
+        [MinLength(6)]
+        public string NewPassword { get; set; } = string.Empty;
 
         [Required]
         [Compare("NewPassword", ErrorMessage = "Password confirmation does not match")]
-        public string ConfirmPassword { get; set; }
+        public string ConfirmPassword { get; set; } = string.Empty;
 
         [Required]
-        public string Token { get; set; }
+        public string Token { get; set; } = string.Empty;
     }
 }
