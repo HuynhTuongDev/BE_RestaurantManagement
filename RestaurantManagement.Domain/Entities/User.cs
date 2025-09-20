@@ -1,6 +1,4 @@
-﻿using RestaurantManagement.Domain.Entities.RestaurantManagement.Domain.Entities;
-
-namespace RestaurantManagement.Domain.Entities
+﻿namespace RestaurantManagement.Domain.Entities
 {
     public enum UserRole
     {
