@@ -85,9 +85,14 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IMenuItemRepository, MenuItemRepository>();
 builder.Services.AddScoped<IMenuItemImageRepository, MenuItemImageRepository>();
 
+
+
+
 // Staff and Customer Services (using Infrastructure implementations)
 builder.Services.AddScoped<IStaffService, StaffService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
+//MenuItem Services
+builder.Services.AddScoped<IMenuItemService, MenuItemService>();
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
