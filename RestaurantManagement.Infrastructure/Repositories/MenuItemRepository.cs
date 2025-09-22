@@ -65,5 +65,16 @@ namespace RestaurantManagement.Infrastructure.Repositories
         {
             return await _context.MenuItems.AnyAsync(m => m.Id == id);
         }
+
+        public async Task<IEnumerable<MenuItem>> SearchAsync(string keyword)
+        {
+    
+            return await _context.MenuItems
+                .Include(m => m.Images)
+                .Where(m =>
+                    m.Name.Contains(keyword) ||
+                    (m.Description != null && m.Description.Contains(keyword)))
+                .ToListAsync();
+        }
     }
 }
