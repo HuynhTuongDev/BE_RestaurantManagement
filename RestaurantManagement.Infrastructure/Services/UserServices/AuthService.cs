@@ -176,7 +176,7 @@ namespace RestaurantManagement.Infrastructure.Services.UserServices
         }
         public async Task<AuthResponse> UpdatePasswordAsync(string? email, ResetPasswordRequest request)
         {
-            var user = await _userRepository.GetByEmailAsync(email);
+            var user = await _userRepository.GetByEmailAsync(email!);
             if (user == null)
                 return new AuthResponse { Success = false, Message = "User not found" };
 

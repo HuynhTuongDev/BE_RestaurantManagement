@@ -138,7 +138,7 @@ namespace RestaurantManagement.Api.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var claimsPrincipal = _jwtService.ValidateToken(resetRequest.Token, "Reset");
+            var claimsPrincipal = _jwtService.ValidateToken(resetRequest.Token!, "Reset");
             if (claimsPrincipal == null)
             {
                 return BadRequest("The token is invalid or has expired.");
@@ -146,7 +146,7 @@ namespace RestaurantManagement.Api.Controllers
 
             var email = claimsPrincipal.FindFirst(ClaimTypes.Email)?.Value;
 
-            var result = await _authService.UpdatePasswordAsync(email, resetRequest);
+            var result = await _authService.UpdatePasswordAsync(email!, resetRequest);
             if (result.Success)
                 return Ok(result);
             

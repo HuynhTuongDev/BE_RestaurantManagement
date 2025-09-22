@@ -10,7 +10,7 @@ namespace RestaurantManagement.Application.Services.System
     public interface IJwtService
     {
         string GenerateToken(User user, string tokenType);
-        ClaimsPrincipal ValidateToken(string token, string tokenType)
+        ClaimsPrincipal? ValidateToken(string token, string tokenType)
 ;    }
 
     public class JwtService : IJwtService
@@ -59,6 +59,7 @@ namespace RestaurantManagement.Application.Services.System
 
         public ClaimsPrincipal? ValidateToken(string token, string tokenType = "Access")
         {
+
             var jwtSettings = _configuration.GetSection("JwtSettings");
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Secret"]!));
 
