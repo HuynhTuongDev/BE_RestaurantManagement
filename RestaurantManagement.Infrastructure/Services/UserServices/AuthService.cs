@@ -174,7 +174,7 @@ namespace RestaurantManagement.Infrastructure.Services.UserServices
                 CreatedAt = user.CreatedAt,
             };
         }
-        public async Task<AuthResponse> UpdatePasswordAsync(string email, ResetPasswordRequest request)
+        public async Task<AuthResponse> UpdatePasswordAsync(string? email, ResetPasswordRequest request)
         {
             var user = await _userRepository.GetByEmailAsync(email);
             if (user == null)

@@ -101,13 +101,13 @@ namespace RestaurantManagement.Domain.DTOs.UserDTOs
     public class ResetPasswordRequest
     {
         [Required]
-        public string NewPassword { get; set; }
+        public string? NewPassword { get; set; }
 
         [Required]
         [Compare("NewPassword", ErrorMessage = "Password confirmation does not match")]
-        public string ConfirmPassword { get; set; }
+        public string? ConfirmPassword { get; set; }
 
         [Required]
-        public string Token { get; set; }
+        public string? Token { get; set; }
     }
 }

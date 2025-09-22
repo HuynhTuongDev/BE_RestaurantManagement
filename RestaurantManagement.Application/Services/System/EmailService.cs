@@ -47,7 +47,7 @@ namespace BackEnd.Service.ServiceImpl
             {
 
                 await client.ConnectAsync(_configuration["SmtpSettings:Server"],
-                                  int.Parse(_configuration["SmtpSettings:Port"]),
+                                  int.Parse(_configuration["SmtpSettings:Port"]!),
                                   MailKit.Security.SecureSocketOptions.StartTls);
 
                 await client.AuthenticateAsync(
