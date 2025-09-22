@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RestaurantManagement.Application.Services;
+using RestaurantManagement.Domain.DTOs;
 using RestaurantManagement.Domain.Entities;
 namespace RestaurantManagement.Api.Controllers
 {
@@ -27,16 +28,20 @@ namespace RestaurantManagement.Api.Controllers
 
         // Add
         [HttpPost]
-        public async Task<IActionResult> AddDish(
-            string name,
-            string Description,
-            decimal price,
-            string Category
-            )
+        public async Task<IActionResult> AddDish([FromBody] MenuItemCreateDto request)
         {
-            var dish = new MenuItem { Name = name,Description =Description, Price = price ,Category=Category};
-            var created = await _menuItemServices.AddAsync(dish);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
+            var dish = new MenuItem
+            {
+                Name = request.Name,
+                Description = request.Description,
+                Price = request.Price,
+                Category = request.Category
+            };
+
+            var created = await _menuItemServices.AddAsync(dish);
             return CreatedAtAction(nameof(GetDish), new { id = created.Id }, created);
         }
 
@@ -51,27 +56,24 @@ namespace RestaurantManagement.Api.Controllers
 
         
         [HttpPut("{id}")]
-        public async Task<IActionResult> EditDish(
-            int id,
-            string name,
-            string Description,
-            decimal price,
-            string Category
-            )
+        public async Task<IActionResult> EditDish(int id, 
+            [FromBody] MenuItemCreateDto request)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             var dish = await _menuItemServices.GetByIdAsync(id);
-            if (dish == null) return NotFound();
+            if (dish == null)
+                return NotFound(new { message = $"MenuItem {id} not found" });
 
-            dish.Name = name;
-            dish.Description = Description;
-            dish.Price = price;
-            dish.Category = Category;
             
-            
-
+            dish.Name = request.Name;
+            dish.Description = request.Description;
+            dish.Price = request.Price;
+            dish.Category = request.Category;
 
             await _menuItemServices.UpdateAsync(dish);
-            return NoContent();
+            return NoContent(); 
         }
 
         

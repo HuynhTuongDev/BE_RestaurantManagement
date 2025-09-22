@@ -18,7 +18,7 @@ namespace RestaurantManagement.Infrastructure.Services
             _menuItemRepository = menuItemRepository;
         }
 
-        // Thêm món mới
+        // add dish
         public async Task<MenuItem> AddAsync(MenuItem item)
         {
             
@@ -26,7 +26,7 @@ namespace RestaurantManagement.Infrastructure.Services
             return item;
         }
 
-        // Xoá món theo Id
+        // Delete dish by ID
         public async Task DeleteAsync(int id)
         {
             var dish = await _menuItemRepository.GetByIdAsync(id);
@@ -36,19 +36,19 @@ namespace RestaurantManagement.Infrastructure.Services
             await _menuItemRepository.DeleteAsync(id);
         }
 
-        // Lấy chi tiết món
+        // Get dish details
         public async Task<MenuItem?> GetByIdAsync(int id)
         {
             return await _menuItemRepository.GetByIdAsync(id);
         }
 
-        // Tìm kiếm theo keyword (Tên hoặc Mô tả)
+        // Search by keyword (Name or Description)
         public Task<IEnumerable<MenuItem>> SearchAsync(string keyword)
         {  
             return _menuItemRepository.SearchAsync(keyword);
         }
 
-        // Cập nhật thông tin món
+        // Update dish information
         public async Task UpdateAsync(MenuItem item)
         {
             var existing = await _menuItemRepository.GetByIdAsync(item.Id);
