@@ -11,7 +11,8 @@ namespace RestaurantManagement.Application.Services.System
     {
         string GenerateToken(User user, string tokenType);
         ClaimsPrincipal? ValidateToken(string token, string tokenType)
-;    }
+;
+    }
 
     public class JwtService : IJwtService
     {
@@ -42,7 +43,7 @@ namespace RestaurantManagement.Application.Services.System
             {
                 expires = DateTime.UtcNow.AddHours(Convert.ToDouble(jwtSettings["Access:ExpirationHours"]));
             }
-            else 
+            else
             {
                 expires = DateTime.UtcNow.AddMinutes(Convert.ToDouble(jwtSettings["Reset:ExpirationMinutes"]));
             }
@@ -57,42 +58,60 @@ namespace RestaurantManagement.Application.Services.System
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        public ClaimsPrincipal? ValidateToken(string token, string tokenType = "Access")
+        public ClaimsPrincipal ValidateToken(string token, string tokenType = "Access")
         {
+            if (string.IsNullOrWhiteSpace(token))
+                throw new SecurityTokenException("Token is required");
 
-            var jwtSettings = _configuration.GetSection("JwtSettings");
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Secret"]!));
-
-            var tokenHandler = new JwtSecurityTokenHandler();
-
-            var validationParameters = new TokenValidationParameters
+            try
             {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = key,
+                var jwtSettings = _configuration.GetSection("JwtSettings");
+                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Secret"]!));
 
-                ValidateIssuer = true,
-                ValidIssuer = jwtSettings["Issuer"],
+                var tokenHandler = new JwtSecurityTokenHandler();
 
-                ValidateAudience = true,
-                ValidAudience = jwtSettings["Audience"],
+                var validationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = key,
 
-                ValidateLifetime = true,
-                ClockSkew = TimeSpan.Zero
-            };
+                    ValidateIssuer = true,
+                    ValidIssuer = jwtSettings["Issuer"],
 
-            var principal = tokenHandler.ValidateToken(token, validationParameters, out var validatedToken);
+                    ValidateAudience = true,
+                    ValidAudience = jwtSettings["Audience"],
 
-            if (validatedToken is not JwtSecurityToken jwtToken)
-                throw new SecurityTokenException("Invalid token format");
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero
+                };
 
-            if (jwtToken.Header.Alg != SecurityAlgorithms.HmacSha256)
-                throw new SecurityTokenException("Invalid token algorithm");
+                var principal = tokenHandler.ValidateToken(token, validationParameters, out var validatedToken)
+                                 ?? throw new SecurityTokenException("Token validation returned null");
 
-            var typ = principal.FindFirst("typ")?.Value;
-            if (typ != tokenType)
-                throw new SecurityTokenException("Invalid token type");
+                if (validatedToken is not JwtSecurityToken jwtToken)
+                    throw new SecurityTokenException("Invalid token format");
 
-            return principal;
+                if (jwtToken.Header.Alg != SecurityAlgorithms.HmacSha256)
+                    throw new SecurityTokenException("Invalid token algorithm");
+
+                var typ = principal.FindFirst("typ")?.Value;
+                if (typ != tokenType)
+                    throw new SecurityTokenException("Invalid token type");
+
+                return principal;
+            }
+            catch (SecurityTokenExpiredException)
+            {
+                throw new SecurityTokenException("Token has expired");
+            }
+            catch (SecurityTokenException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Unexpected error during token validation: {ex.Message}", ex);
+            }
         }
     }
 }

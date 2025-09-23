@@ -102,13 +102,13 @@ namespace RestaurantManagement.Domain.DTOs.UserDTOs
     {
         [Required]
         [MinLength(6)]
-        public string? NewPassword { get; set; }
+        public string NewPassword { get; set; } = string.Empty;
 
         [Required]
         [Compare("NewPassword", ErrorMessage = "Password confirmation does not match")]
-        public string? ConfirmPassword { get; set; }
+        public string ConfirmPassword { get; set; } = string.Empty;
 
         [Required]
-        public string? Token { get; set; }
+        public string Token { get; set; } = string.Empty;
     }
 }
