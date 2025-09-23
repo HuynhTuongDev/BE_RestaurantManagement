@@ -9,7 +9,9 @@ namespace RestaurantManagement.Application.Services.System
 {
     public interface IJwtService
     {
-        string GenerateToken(User user);
+        string GenerateToken(User user, string tokenType);
+        ClaimsPrincipal ValidateToken(string token, string tokenType)
+;
     }
 
     public class JwtService : IJwtService
@@ -21,7 +23,7 @@ namespace RestaurantManagement.Application.Services.System
             _configuration = configuration;
         }
 
-        public string GenerateToken(User user)
+        public string GenerateToken(User user, string tokenType = "Access")
         {
             var jwtSettings = _configuration.GetSection("JwtSettings");
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Secret"]!));
@@ -34,17 +36,82 @@ namespace RestaurantManagement.Application.Services.System
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.FullName),
                 new Claim(ClaimTypes.Role, user.Role.ToString()),
+                new Claim("typ", tokenType)
             };
-
+            DateTime expires;
+            if (tokenType == "Access")
+            {
+                expires = DateTime.UtcNow.AddHours(Convert.ToDouble(jwtSettings["Access:ExpirationHours"]));
+            }
+            else
+            {
+                expires = DateTime.UtcNow.AddMinutes(Convert.ToDouble(jwtSettings["Reset:ExpirationMinutes"]));
+            }
             var token = new JwtSecurityToken(
                 issuer: jwtSettings["Issuer"],
                 audience: jwtSettings["Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(Convert.ToDouble(jwtSettings["ExpirationHours"])),
+                expires: expires,
                 signingCredentials: credentials
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        public ClaimsPrincipal ValidateToken(string token, string tokenType = "Access")
+        {
+            if (string.IsNullOrWhiteSpace(token))
+                throw new SecurityTokenException("Token is required");
+
+            try
+            {
+                var jwtSettings = _configuration.GetSection("JwtSettings");
+                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Secret"]!));
+
+                var tokenHandler = new JwtSecurityTokenHandler();
+
+                var validationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = key,
+
+                    ValidateIssuer = true,
+                    ValidIssuer = jwtSettings["Issuer"],
+
+                    ValidateAudience = true,
+                    ValidAudience = jwtSettings["Audience"],
+
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero
+                };
+
+                var principal = tokenHandler.ValidateToken(token, validationParameters, out var validatedToken)
+                                 ?? throw new SecurityTokenException("Token validation returned null");
+
+                if (validatedToken is not JwtSecurityToken jwtToken)
+                    throw new SecurityTokenException("Invalid token format");
+
+                if (jwtToken.Header.Alg != SecurityAlgorithms.HmacSha256)
+                    throw new SecurityTokenException("Invalid token algorithm");
+
+                var typ = principal.FindFirst("typ")?.Value;
+                if (typ != tokenType)
+                    throw new SecurityTokenException("Invalid token type");
+
+                return principal;
+            }
+            catch (SecurityTokenExpiredException)
+            {
+                throw new SecurityTokenException("Token has expired");
+            }
+            catch (SecurityTokenException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Unexpected error during token validation: {ex.Message}", ex);
+            }
         }
     }
 }

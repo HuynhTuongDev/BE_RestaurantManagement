@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using BackEnd.Service.ServiceImpl;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RestaurantManagement.Application.Services.IUserService;
+using RestaurantManagement.Application.Services.System;
 using RestaurantManagement.Domain.DTOs.UserDTOs;
 using RestaurantManagement.Domain.Interfaces;
 using System.Security.Claims;
@@ -12,10 +14,16 @@ namespace RestaurantManagement.Api.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly IEmailService _emailService;
+        private readonly IUserRepository _userRepository;
+        private readonly IJwtService _jwtService;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, IUserRepository userRepository, IJwtService jwtService, IEmailService emailService)
         {
             _authService = authService;
+            _userRepository = userRepository;
+            _jwtService = jwtService;
+            _emailService = emailService;
         }
 
         [HttpPost("register")]
@@ -105,6 +113,43 @@ namespace RestaurantManagement.Api.Controllers
             if (result.Success)
                 return Ok(result);
 
+            return BadRequest(result);
+        }
+
+
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest forgotRequest)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            var user = await _userRepository.GetByEmailAsync(forgotRequest.Email);
+            if (user == null)
+            {
+                return NotFound("User not found with the provided email.");
+            }
+
+            await _emailService.SendResetPasswordEmail(user);
+            return Ok("Please check your email to reset your password.");
+        }
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest resetRequest)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var claimsPrincipal = _jwtService.ValidateToken(resetRequest.Token!, "Reset");
+            if (claimsPrincipal == null)
+            {
+                return BadRequest("The token is invalid or has expired.");
+            }
+
+            var email = claimsPrincipal.FindFirst(ClaimTypes.Email)?.Value;
+
+            var result = await _authService.UpdatePasswordAsync(email!, resetRequest);
+            if (result.Success)
+                return Ok(result);
+            
             return BadRequest(result);
         }
     }
