@@ -64,41 +64,35 @@ namespace RestaurantManagement.Application.Services.System
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Secret"]!));
 
             var tokenHandler = new JwtSecurityTokenHandler();
-            try
+
+            var validationParameters = new TokenValidationParameters
             {
-                var validationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = key,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = key,
 
-                    ValidateIssuer = true,
-                    ValidIssuer = jwtSettings["Issuer"],
+                ValidateIssuer = true,
+                ValidIssuer = jwtSettings["Issuer"],
 
-                    ValidateAudience = true,
-                    ValidAudience = jwtSettings["Audience"],
+                ValidateAudience = true,
+                ValidAudience = jwtSettings["Audience"],
 
-                    ValidateLifetime = true,
-                    ClockSkew = TimeSpan.Zero
-                };
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            };
 
-                var principal = tokenHandler.ValidateToken(token, validationParameters, out var validatedToken);
+            var principal = tokenHandler.ValidateToken(token, validationParameters, out var validatedToken);
 
-                if (validatedToken is JwtSecurityToken jwtToken)
-                {
-                    if (jwtToken.Header.Alg != SecurityAlgorithms.HmacSha256)
-                        throw new SecurityTokenException("Invalid token algorithm");
+            if (validatedToken is not JwtSecurityToken jwtToken)
+                throw new SecurityTokenException("Invalid token format");
 
-                    var typ = principal.FindFirst("typ")?.Value;
-                    if (typ != tokenType)
-                        throw new SecurityTokenException("Invalid token type");
-                }
+            if (jwtToken.Header.Alg != SecurityAlgorithms.HmacSha256)
+                throw new SecurityTokenException("Invalid token algorithm");
 
-                return principal;
-            }
-            catch
-            {
-                return null; 
-            }
+            var typ = principal.FindFirst("typ")?.Value;
+            if (typ != tokenType)
+                throw new SecurityTokenException("Invalid token type");
+
+            return principal;
         }
-}
+    }
 }
