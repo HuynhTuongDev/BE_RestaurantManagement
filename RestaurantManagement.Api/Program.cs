@@ -84,6 +84,8 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IMenuItemRepository, MenuItemRepository>();
 builder.Services.AddScoped<IMenuItemImageRepository, MenuItemImageRepository>();
+builder.Services.AddScoped<IRestaurantTableRepository, RestaurantTableRepository>();
+
 
 
 
@@ -93,6 +95,8 @@ builder.Services.AddScoped<IStaffService, StaffService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 //MenuItem Services
 builder.Services.AddScoped<IMenuItemService, MenuItemService>();
+// Restaurant Table Services
+builder.Services.AddScoped<IRestaurantTableService,RestaurantTableService>();
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
