@@ -11,5 +11,12 @@ namespace RestaurantManagement.Domain.Interfaces
     {
         Task<RestaurantTable?> GetByIdAsync(int id);
         Task<IEnumerable<RestaurantTable>> GetAllAsync();
+        
+        // search by TableNumber or Location
+        Task<IEnumerable<RestaurantTable>> SearchAsync(string keyword); 
+        Task AddAsync(RestaurantTable restaurantTable);
+        Task UpdateAsync(RestaurantTable restaurantTable);
+        Task DeleteAsync(int id);
+        Task<bool> ExistsAsync(int id);
     }
 }

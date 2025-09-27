@@ -7,6 +7,8 @@
         Reserved
     }
 
+    //Reserved=2,Available=0,Occupied=1
+
     public class RestaurantTable
     {
         public int Id { get; set; }
