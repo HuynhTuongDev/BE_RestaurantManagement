@@ -61,8 +61,16 @@ namespace RestaurantManagement.Api.Controllers
             await _restaurantTableService.DeleteAsync(id);
             return NoContent();
         }
+        [HttpPost("{id}/reserve")]
+        [Authorize(Roles = "Staff,Admin")]
+        public async Task<IActionResult> Reserve(int id) =>
+            await _restaurantTableService.ReserveAsync(id) ? Ok() : NotFound();
 
-        
+        [HttpPost("{id}/cancel")]
+        [Authorize(Roles = "Staff,Admin")]
+        public async Task<IActionResult> Cancel(int id) =>
+            await _restaurantTableService.CancelReservationAsync(id) ? Ok() : NotFound();
+
     }
 }
 
