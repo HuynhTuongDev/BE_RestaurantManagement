@@ -1,4 +1,5 @@
-﻿using CloudinaryDotNet;
+﻿using BackEnd.Service.ServiceImpl;
+using CloudinaryDotNet;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -86,6 +87,7 @@ builder.Services.AddScoped<IMenuItemRepository, MenuItemRepository>();
 builder.Services.AddScoped<IMenuItemImageRepository, MenuItemImageRepository>();
 builder.Services.AddScoped<IRestaurantTableRepository, RestaurantTableRepository>();
 
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 
 

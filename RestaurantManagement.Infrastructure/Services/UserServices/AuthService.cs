@@ -41,7 +41,7 @@ namespace RestaurantManagement.Infrastructure.Services.UserServices
 
             await _userRepository.AddAsync(user);
 
-            var token = _jwtService.GenerateToken(user);
+            var token = _jwtService.GenerateToken(user, "Access");
 
             return new AuthResponse
             {
@@ -62,7 +62,7 @@ namespace RestaurantManagement.Infrastructure.Services.UserServices
 
             await _userRepository.UpdateAsync(user);
 
-            var token = _jwtService.GenerateToken(user);
+            var token = _jwtService.GenerateToken(user, "Access");
 
             return new AuthResponse
             {
@@ -100,7 +100,7 @@ namespace RestaurantManagement.Infrastructure.Services.UserServices
 
                 await _userRepository.UpdateAsync(user);
 
-                var token = _jwtService.GenerateToken(user);
+                var token = _jwtService.GenerateToken(user, "Access");
                 return new AuthResponse
                 {
                     Success = true,
@@ -174,5 +174,17 @@ namespace RestaurantManagement.Infrastructure.Services.UserServices
                 CreatedAt = user.CreatedAt,
             };
         }
+        public async Task<AuthResponse> UpdatePasswordAsync(string? email, ResetPasswordRequest request)
+        {
+            var user = await _userRepository.GetByEmailAsync(email!);
+            if (user == null)
+                return new AuthResponse { Success = false, Message = "User not found" };
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            await _userRepository.UpdateAsync(user);
+
+            return new AuthResponse { Success = true, Message = "Password reset successfully" };
+        }
+
     }
 }
