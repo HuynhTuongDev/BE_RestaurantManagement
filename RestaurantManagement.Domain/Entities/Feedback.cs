@@ -1,7 +1,5 @@
 ﻿namespace RestaurantManagement.Domain.Entities
 {
-    namespace RestaurantManagement.Domain.Entities
-    {
         public class Feedback
         {
             public int Id { get; set; }
@@ -24,6 +22,4 @@
             public string? Reply { get; set; }
             public DateTime? RepliedAt { get; set; }
         }
-    }
-
 }

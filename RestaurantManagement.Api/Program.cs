@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using RestaurantManagement.Application.Services;
 using RestaurantManagement.Application.Services.IUserService;
+using RestaurantManagement.Application.Services.IUserService.RestaurantManagement.Domain.Interfaces;
 using RestaurantManagement.Application.Services.System;
 using RestaurantManagement.Application.Settings;
 using RestaurantManagement.Domain.Entities;
@@ -86,8 +87,8 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IMenuItemRepository, MenuItemRepository>();
 builder.Services.AddScoped<IMenuItemImageRepository, MenuItemImageRepository>();
 builder.Services.AddScoped<IEmailService, EmailService>();
-
-
+builder.Services.AddScoped<IFeedbackService, FeedbackService>();
+builder.Services.AddScoped<IFeedbackRepository, FeedbackRepository>();
 
 
 // Staff and Customer Services (using Infrastructure implementations)
