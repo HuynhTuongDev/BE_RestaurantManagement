@@ -132,5 +132,47 @@ namespace RestaurantManagement.Infrastructure.Services.UserServices
             };
         }
 
+
+        public async Task<FeedbackDto> UpdateCustomerFeedbackAsync(int userId, FeedbackUpdateDto updateDto)
+        {
+            if (updateDto.Id <= 0)
+                throw new ArgumentException("Feedback ID must be greater than zero.", nameof(updateDto.Id));
+
+            var feedback = await _repository.GetByIdAsync(updateDto.Id)
+                ?? throw new KeyNotFoundException($"Feedback with ID {updateDto.Id} not found.");
+
+            if (feedback.UserId != userId)
+                throw new UnauthorizedAccessException("You are not allowed to edit this feedback.");
+
+            if (updateDto.Rating.HasValue) feedback.Rating = updateDto.Rating.Value;
+            if (!string.IsNullOrEmpty(updateDto.Comment)) feedback.Comment = updateDto.Comment;
+            if (updateDto.IsApproved.HasValue) feedback.IsApproved = updateDto.IsApproved.Value;
+            if (!string.IsNullOrEmpty(updateDto.Reply))
+            {
+                feedback.Reply = updateDto.Reply;
+                feedback.RepliedAt = updateDto.RepliedAt ?? DateTime.UtcNow;
+            }
+
+            feedback.UpdatedAt = DateTime.UtcNow;
+
+            await _repository.UpdateAsync(feedback);
+
+            return new FeedbackDto
+            {
+                Id = feedback.Id,
+                UserId = feedback.UserId,
+                UserName = feedback.User?.FullName ?? "Unknown",
+                OrderId = feedback.OrderId,
+                MenuItemId = feedback.MenuItemId,
+                MenuItemName = feedback.MenuItem?.Name ?? "Unknown",
+                Rating = feedback.Rating,
+                Comment = feedback.Comment ?? string.Empty,
+                IsApproved = feedback.IsApproved,
+                CreatedAt = feedback.CreatedAt,
+                UpdatedAt = feedback.UpdatedAt,
+                Reply = feedback.Reply ?? string.Empty,
+                RepliedAt = feedback.RepliedAt
+            };
+        }
     }
 }

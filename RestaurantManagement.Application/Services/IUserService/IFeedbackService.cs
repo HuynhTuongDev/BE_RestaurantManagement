@@ -11,6 +11,7 @@ namespace RestaurantManagement.Application.Services.IUserService
             Task<FeedbackDto> GetByIdAsync(int? id);
             Task<FeedbackDto> CreateAsync(CreateFeedbackDto dto);
             Task<FeedbackDto> UpdateFeedbackAsync(FeedbackUpdateDto updateDto);
+            Task<FeedbackDto> UpdateCustomerFeedbackAsync(int userId, FeedbackUpdateDto updateDto);
         }
     }
 

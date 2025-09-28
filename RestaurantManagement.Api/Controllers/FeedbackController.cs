@@ -2,6 +2,7 @@
 using RestaurantManagement.Application.Services.IUserService.RestaurantManagement.Domain.Interfaces;
 using RestaurantManagement.Domain.DTOs.UserDTOs;
 using RestaurantManagement.Domain.Entities;
+using System.Security.Claims;
 
 namespace RestaurantManagement.Api.Controllers
 {
@@ -57,6 +58,31 @@ namespace RestaurantManagement.Api.Controllers
             if (updatedFeedback == null) return NotFound();
 
             return Ok(updatedFeedback);
+        }
+
+        [HttpPut("customer")]
+        public async Task<IActionResult> UpdateCustomerFeedback([FromBody] FeedbackUpdateDto updateDto)
+        {
+            try
+            {
+                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                          ?? throw new UnauthorizedAccessException("User ID not found in token"));
+
+                var updatedFeedback = await _service.UpdateCustomerFeedbackAsync(userId, updateDto);
+                return Ok(updatedFeedback);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
+            }
         }
     }
 }
