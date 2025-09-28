@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using RestaurantManagement.Application.Services.IUserService.RestaurantManagement.Domain.Interfaces;
+using RestaurantManagement.Domain.DTOs.UserDTOs;
 using RestaurantManagement.Domain.Entities;
 
 namespace RestaurantManagement.Api.Controllers
@@ -22,5 +23,20 @@ namespace RestaurantManagement.Api.Controllers
             var feedbacks = await _service.GetAllAsync();
             return Ok(feedbacks);
         }
+
+        // GET: api/feedbacks/{id}
+        [HttpGet("{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var feedback = await _service.GetByIdAsync(id);
+            if (feedback == null)
+                return NotFound(new { message = $"Feedback with ID {id} not found" });
+
+            return Ok(feedback);
+        }
+
+        
     }
 }

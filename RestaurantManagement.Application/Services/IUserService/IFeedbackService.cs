@@ -8,6 +8,8 @@ namespace RestaurantManagement.Application.Services.IUserService
         public interface IFeedbackService
         {
             Task<IEnumerable<FeedbackDto>> GetAllAsync();
+            Task<FeedbackDto?> GetByIdAsync(int id);
+            
         }
     }
 

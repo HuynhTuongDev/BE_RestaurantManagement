@@ -1,5 +1,7 @@
-﻿using RestaurantManagement.Application.Services.IUserService.RestaurantManagement.Domain.Interfaces;
+﻿using Microsoft.EntityFrameworkCore;
+using RestaurantManagement.Application.Services.IUserService.RestaurantManagement.Domain.Interfaces;
 using RestaurantManagement.Domain.DTOs.UserDTOs;
+using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
 
 namespace RestaurantManagement.Infrastructure.Services.UserServices
@@ -34,5 +36,28 @@ namespace RestaurantManagement.Infrastructure.Services.UserServices
                 RepliedAt = f.RepliedAt
             });
         }
+        public async Task<FeedbackDto?> GetByIdAsync(int id)
+        {
+            var feedback = await _repository.GetByIdAsync(id);
+            if (feedback == null) return null;
+
+            return new FeedbackDto
+            {
+                Id = feedback.Id,
+                UserId = feedback.UserId,
+                UserName = feedback.User.FullName,
+                OrderId = feedback.OrderId,
+                MenuItemId = feedback.MenuItemId,
+                MenuItemName = feedback.MenuItem?.Name,
+                Rating = feedback.Rating,
+                Comment = feedback.Comment,
+                IsApproved = feedback.IsApproved,
+                CreatedAt = feedback.CreatedAt,
+                UpdatedAt = feedback.UpdatedAt,
+                Reply = feedback.Reply,
+                RepliedAt = feedback.RepliedAt
+            };
+        }
+        
     }
 }

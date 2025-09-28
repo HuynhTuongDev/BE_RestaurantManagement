@@ -23,6 +23,14 @@ namespace RestaurantManagement.Infrastructure.Repositories
                 .OrderByDescending(f => f.CreatedAt)
                 .ToListAsync();
         }
+        public async Task<Feedback?> GetByIdAsync(int id)
+        {
+            return await _context.Feedbacks
+                .Include(f => f.User)
+                .Include(f => f.MenuItem)
+                .FirstOrDefaultAsync(f => f.Id == id);
+        }
+
 
     }
 }
