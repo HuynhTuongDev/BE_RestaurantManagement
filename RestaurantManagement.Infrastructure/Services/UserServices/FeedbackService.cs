@@ -1,5 +1,5 @@
 ﻿using RestaurantManagement.Application.Services.IUserService.RestaurantManagement.Domain.Interfaces;
-using RestaurantManagement.Domain.Entities;
+using RestaurantManagement.Domain.DTOs.UserDTOs;
 using RestaurantManagement.Domain.Interfaces;
 
 namespace RestaurantManagement.Infrastructure.Services.UserServices
@@ -13,7 +13,26 @@ namespace RestaurantManagement.Infrastructure.Services.UserServices
             _repository = repository;
         }
 
-        public async Task<IEnumerable<Feedback>> GetAllAsync()
-            => await _repository.GetAllAsync();
+        public async Task<IEnumerable<FeedbackDto>> GetAllAsync()
+        {
+            var feedbacks = await _repository.GetAllAsync();
+
+            return feedbacks.Select(f => new FeedbackDto
+            {
+                Id = f.Id,
+                UserId = f.UserId,
+                UserName = f.User?.FullName ?? string.Empty,
+                OrderId = f.OrderId,
+                MenuItemId = f.MenuItemId,
+                MenuItemName = f.MenuItem?.Name,
+                Rating = f.Rating,
+                Comment = f.Comment,
+                IsApproved = f.IsApproved,
+                CreatedAt = f.CreatedAt,
+                UpdatedAt = f.UpdatedAt,
+                Reply = f.Reply,
+                RepliedAt = f.RepliedAt
+            });
+        }
     }
 }

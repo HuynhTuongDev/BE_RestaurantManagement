@@ -1,4 +1,5 @@
-﻿using RestaurantManagement.Domain.Entities;
+﻿using RestaurantManagement.Domain.DTOs.UserDTOs;
+using RestaurantManagement.Domain.Entities;
 namespace RestaurantManagement.Application.Services.IUserService
 {
 
@@ -6,7 +7,7 @@ namespace RestaurantManagement.Application.Services.IUserService
     {
         public interface IFeedbackService
         {
-            Task<IEnumerable<Feedback>> GetAllAsync();
+            Task<IEnumerable<FeedbackDto>> GetAllAsync();
         }
     }
 

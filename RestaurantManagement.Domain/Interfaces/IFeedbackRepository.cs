@@ -1,4 +1,5 @@
-﻿using RestaurantManagement.Domain.Entities;
+﻿using RestaurantManagement.Domain.DTOs.UserDTOs;
+using RestaurantManagement.Domain.Entities;
 
 namespace RestaurantManagement.Domain.Interfaces
 {
