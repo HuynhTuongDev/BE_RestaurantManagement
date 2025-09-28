@@ -37,5 +37,13 @@ namespace RestaurantManagement.Infrastructure.Repositories
             await _context.SaveChangesAsync();
             return feedback;
         }
+
+        public async Task<Feedback> UpdateAsync(Feedback feedback)
+        {
+            _context.Feedbacks.Update(feedback);
+            await _context.SaveChangesAsync();
+            return feedback; 
+        }
+
     }
 }

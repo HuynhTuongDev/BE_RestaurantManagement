@@ -36,10 +36,12 @@ namespace RestaurantManagement.Infrastructure.Services.UserServices
                 RepliedAt = f.RepliedAt
             });
         }
-        public async Task<FeedbackDto?> GetByIdAsync(int id)
+        public async Task<FeedbackDto> GetByIdAsync(int? id)
         {
-            var feedback = await _repository.GetByIdAsync(id);
-            if (feedback == null) return null;
+            if (!id.HasValue || id.Value <= 0)
+                throw new ArgumentException("Feedback ID must be provided and greater than zero.", nameof(id));
+            var feedback = await _repository.GetByIdAsync(id.Value)
+                ?? throw new KeyNotFoundException($"Feedback with ID {id} not found.");
 
             return new FeedbackDto
             {
@@ -48,16 +50,18 @@ namespace RestaurantManagement.Infrastructure.Services.UserServices
                 UserName = feedback.User.FullName,
                 OrderId = feedback.OrderId,
                 MenuItemId = feedback.MenuItemId,
-                MenuItemName = feedback.MenuItem?.Name,
+                MenuItemName = feedback.MenuItem?.Name ?? "Unknown",
                 Rating = feedback.Rating,
-                Comment = feedback.Comment,
+                Comment = feedback.Comment ?? string.Empty,
                 IsApproved = feedback.IsApproved,
                 CreatedAt = feedback.CreatedAt,
                 UpdatedAt = feedback.UpdatedAt,
-                Reply = feedback.Reply,
+                Reply = feedback.Reply ?? string.Empty,
                 RepliedAt = feedback.RepliedAt
             };
         }
+
+
         public async Task<FeedbackDto> CreateAsync(CreateFeedbackDto dto)
         {
             var entity = new Feedback
@@ -84,13 +88,49 @@ namespace RestaurantManagement.Infrastructure.Services.UserServices
                 Rating = saved.Rating,
                 Comment = saved.Comment,
                 IsApproved = saved.IsApproved,
-                CreatedAt = saved.CreatedAt,
-                UpdatedAt = saved.UpdatedAt,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
                 Reply = saved.Reply,
                 RepliedAt = saved.RepliedAt
             };
         }
 
+        public async Task<FeedbackDto> UpdateFeedbackAsync(FeedbackUpdateDto updateDto)
+        {
+            var feedback = await _repository.GetByIdAsync(updateDto.Id);
+            if (feedback == null)
+                throw new KeyNotFoundException($"Feedback with ID {updateDto.Id} not found.");
+
+            if (updateDto.Rating.HasValue) feedback.Rating = updateDto.Rating.Value;
+            if (!string.IsNullOrEmpty(updateDto.Comment)) feedback.Comment = updateDto.Comment;
+            if (updateDto.IsApproved.HasValue) feedback.IsApproved = updateDto.IsApproved.Value;
+            if (!string.IsNullOrEmpty(updateDto.Reply))
+            {
+                feedback.Reply = updateDto.Reply;
+                feedback.RepliedAt = updateDto.RepliedAt ?? DateTime.UtcNow;
+            }
+
+            feedback.UpdatedAt = DateTime.UtcNow;
+
+            await _repository.UpdateAsync(feedback);
+
+            return new FeedbackDto
+            {
+                Id = feedback.Id,
+                UserId = feedback.UserId,
+                UserName = feedback.User.FullName,
+                OrderId = feedback.OrderId,
+                MenuItemId = feedback.MenuItemId,
+                MenuItemName = feedback.MenuItem?.Name,
+                Rating = feedback.Rating,
+                Comment = feedback.Comment,
+                IsApproved = feedback.IsApproved,
+                CreatedAt = feedback.CreatedAt,
+                UpdatedAt = DateTime.UtcNow,
+                Reply = feedback.Reply,
+                RepliedAt = feedback.RepliedAt
+            };
+        }
 
     }
 }

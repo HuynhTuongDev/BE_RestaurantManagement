@@ -48,6 +48,15 @@ namespace RestaurantManagement.Api.Controllers
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
         }
 
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateFeedback(int id, [FromBody] FeedbackUpdateDto updateDto)
+        {
+            if (id != updateDto.Id) return BadRequest("Mismatched ID");
 
+            var updatedFeedback = await _service.UpdateFeedbackAsync(updateDto);
+            if (updatedFeedback == null) return NotFound();
+
+            return Ok(updatedFeedback);
+        }
     }
 }
