@@ -37,6 +37,17 @@ namespace RestaurantManagement.Api.Controllers
             return Ok(feedback);
         }
 
-        
+        // POST: api/feedback
+        [HttpPost]
+        public async Task<IActionResult> CreateAsync([FromBody] CreateFeedbackDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var result = await _service.CreateAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        }
+
+
     }
 }

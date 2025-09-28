@@ -58,6 +58,39 @@ namespace RestaurantManagement.Infrastructure.Services.UserServices
                 RepliedAt = feedback.RepliedAt
             };
         }
-        
+        public async Task<FeedbackDto> CreateAsync(CreateFeedbackDto dto)
+        {
+            var entity = new Feedback
+            {
+                UserId = dto.UserId,
+                OrderId = dto.OrderId,
+                MenuItemId = dto.MenuItemId,
+                Rating = dto.Rating,
+                Comment = dto.Comment,
+                IsApproved = dto.IsApproved,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var saved = await _repository.AddAsync(entity);
+
+            return new FeedbackDto
+            {
+                Id = saved.Id,
+                UserId = saved.UserId,
+                UserName = saved.User?.FullName ?? string.Empty,
+                OrderId = saved.OrderId,
+                MenuItemId = saved.MenuItemId,
+                MenuItemName = saved.MenuItem?.Name,
+                Rating = saved.Rating,
+                Comment = saved.Comment,
+                IsApproved = saved.IsApproved,
+                CreatedAt = saved.CreatedAt,
+                UpdatedAt = saved.UpdatedAt,
+                Reply = saved.Reply,
+                RepliedAt = saved.RepliedAt
+            };
+        }
+
+
     }
 }

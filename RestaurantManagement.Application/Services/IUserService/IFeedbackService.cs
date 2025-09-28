@@ -9,7 +9,7 @@ namespace RestaurantManagement.Application.Services.IUserService
         {
             Task<IEnumerable<FeedbackDto>> GetAllAsync();
             Task<FeedbackDto?> GetByIdAsync(int id);
-            
+            Task<FeedbackDto> CreateAsync(CreateFeedbackDto dto);
         }
     }
 

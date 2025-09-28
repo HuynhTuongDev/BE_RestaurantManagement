@@ -31,6 +31,11 @@ namespace RestaurantManagement.Infrastructure.Repositories
                 .FirstOrDefaultAsync(f => f.Id == id);
         }
 
-
+        public async Task<Feedback> AddAsync(Feedback feedback)
+        {
+            _context.Feedbacks.Add(feedback);
+            await _context.SaveChangesAsync();
+            return feedback;
+        }
     }
 }
