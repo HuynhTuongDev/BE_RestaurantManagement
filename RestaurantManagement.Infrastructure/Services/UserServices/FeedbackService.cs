@@ -174,5 +174,24 @@ namespace RestaurantManagement.Infrastructure.Services.UserServices
                 RepliedAt = feedback.RepliedAt
             };
         }
+
+        public async Task<bool> DeleteFeedbackAsync(int id, int userId, UserRole role)
+        {
+            if (id <= 0)
+                throw new ArgumentException("Invalid feedback ID.");
+
+            var feedback = await _repository.GetByIdAsync(id);
+            if (feedback == null)
+                throw new KeyNotFoundException("Feedback not found.");
+
+            if (role == UserRole.Customer && feedback.UserId != userId)
+                throw new UnauthorizedAccessException("You are not allowed to delete this feedback.");
+
+            var result = await _repository.DeleteAsync(feedback);
+            if (!result)
+                throw new Exception("Failed to delete feedback. Please try again.");
+
+            return true;
+        }
     }
 }

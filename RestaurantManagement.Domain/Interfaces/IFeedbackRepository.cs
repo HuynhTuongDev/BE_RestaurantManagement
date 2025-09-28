@@ -9,5 +9,6 @@ namespace RestaurantManagement.Domain.Interfaces
         Task<Feedback?> GetByIdAsync(int id);
         Task<Feedback> AddAsync(Feedback feedback);
         Task<Feedback> UpdateAsync(Feedback feedback);
+        Task<bool> DeleteAsync(Feedback feedback);
     }
 }

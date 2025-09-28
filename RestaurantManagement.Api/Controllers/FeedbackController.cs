@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using RestaurantManagement.Application.Services.IUserService.RestaurantManagement.Domain.Interfaces;
 using RestaurantManagement.Domain.DTOs.UserDTOs;
 using RestaurantManagement.Domain.Entities;
@@ -29,6 +30,7 @@ namespace RestaurantManagement.Api.Controllers
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetById(int id)
         {
             var feedback = await _service.GetByIdAsync(id);
@@ -50,6 +52,7 @@ namespace RestaurantManagement.Api.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateFeedback(int id, [FromBody] FeedbackUpdateDto updateDto)
         {
             if (id != updateDto.Id) return BadRequest("Mismatched ID");
@@ -82,6 +85,45 @@ namespace RestaurantManagement.Api.Controllers
             catch (UnauthorizedAccessException ex)
             {
                 return Forbid(ex.Message);
+            }
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeleteFeedback(int id)
+        {
+            try
+            {
+                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                          ?? throw new UnauthorizedAccessException("User ID not found in token"));
+
+                var roleValue = User.FindFirst(ClaimTypes.Role)?.Value
+                                ?? throw new UnauthorizedAccessException("User Role not found in token");
+
+                UserRole role = Enum.Parse<UserRole>(roleValue, true);
+
+                var result = await _service.DeleteFeedbackAsync(id, userId, role);
+
+                if (result)
+                    return Ok(new { message = "Feedback deleted successfully." });
+
+                return StatusCode(500, new { error = "Unknown error occurred while deleting feedback." });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { error = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
             }
         }
     }
