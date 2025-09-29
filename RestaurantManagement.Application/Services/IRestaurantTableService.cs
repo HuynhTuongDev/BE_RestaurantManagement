@@ -13,7 +13,7 @@ namespace RestaurantManagement.Application.Services
         Task<RestaurantTable?> GetByIdAsync(int id);
         Task<IEnumerable<RestaurantTable>> GetAllAsync();
 
-        Task<IEnumerable<RestaurantTable>> SearchAsync(string keyword);
+        Task<IEnumerable<RestaurantTable>> SearchAsync(int keyword);
         Task<RestaurantTable> AddAsync(RestaurantTableCreateDto dto);
         Task UpdateAsync(int id, RestaurantTableCreateDto dto);
         Task DeleteAsync(int id);

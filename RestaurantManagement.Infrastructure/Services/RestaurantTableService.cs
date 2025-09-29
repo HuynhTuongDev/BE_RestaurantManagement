@@ -27,9 +27,9 @@ namespace RestaurantManagement.Infrastructure.Services
             return await _restaurantTableRepository.GetAllAsync();
         }
 
-        public async Task<IEnumerable<RestaurantTable>> SearchAsync(string keyword)
+        public async Task<IEnumerable<RestaurantTable>> SearchAsync(int TableNumber)
         {
-            return await _restaurantTableRepository.SearchAsync(keyword);
+            return await _restaurantTableRepository.SearchAsync(TableNumber);
         } 
 
         public async Task<RestaurantTable> AddAsync(RestaurantTableCreateDto dto)

@@ -31,10 +31,10 @@ namespace RestaurantManagement.Infrastructure.Repositories
         {
             return await _context.RestaurantTables.ToListAsync();
         }
-        public async Task<IEnumerable<RestaurantTable>> SearchAsync(string keyword)
+        public async Task<IEnumerable<RestaurantTable>> SearchAsync(int TableNumber)
         {
             return await _context.RestaurantTables
-                .Where(t => t.TableNumber.ToString().Contains(keyword) || t.Location.Contains(keyword))
+                .Where(t => t.TableNumber == TableNumber)
                 .ToListAsync();
         }
         

@@ -33,8 +33,8 @@ namespace RestaurantManagement.Api.Controllers
         }
 
         [HttpGet("search")]
-        public async Task<IActionResult> Search([FromQuery] string keyword) =>
-        Ok(await _restaurantTableService.SearchAsync(keyword ?? string.Empty));
+        public async Task<IActionResult> Search([FromQuery] int TableNumber) =>
+        Ok(await _restaurantTableService.SearchAsync(TableNumber));
 
         [HttpPost]
         [Authorize(Roles = "Admin")]
