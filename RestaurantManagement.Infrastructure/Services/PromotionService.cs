@@ -42,7 +42,7 @@ namespace RestaurantManagement.Application.Services
             existing.EndDate = dto.EndDate;
 
             // Update status if it expires
-            existing.Status = existing.EndDate < DateTime.UtcNow ? PromotionStatus.Expired : PromotionStatus.Active;
+            existing.Status = existing.EndDate < DateTimeOffset.UtcNow ? PromotionStatus.Expired : PromotionStatus.Active;
 
             var updated = await _promotionRepo.UpdateAsync(existing);
 
