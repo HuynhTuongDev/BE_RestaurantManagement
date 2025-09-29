@@ -87,6 +87,7 @@ builder.Services.AddScoped<IMenuItemRepository, MenuItemRepository>();
 builder.Services.AddScoped<IMenuItemImageRepository, MenuItemImageRepository>();
 builder.Services.AddScoped<IRestaurantTableRepository, RestaurantTableRepository>();
 
+
 builder.Services.AddScoped<IEmailService, EmailService>();
 
 
