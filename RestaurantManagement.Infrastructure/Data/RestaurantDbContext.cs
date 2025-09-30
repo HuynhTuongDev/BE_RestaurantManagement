@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using RestaurantManagement.Domain.Entities;
-using RestaurantManagement.Domain.Entities.RestaurantManagement.Domain.Entities;
 
 namespace RestaurantManagement.Infrastructure.Data
 {
