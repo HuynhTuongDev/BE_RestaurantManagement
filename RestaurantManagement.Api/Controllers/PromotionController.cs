@@ -18,15 +18,18 @@ namespace RestaurantManagement.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] PromotionCreateDto dto)
         {
+            if (dto.EndDate <= dto.StartDate)
+                return BadRequest("EndDate must be greater than StartDate");
             var result = await _promotionService.CreatePromotionAsync(dto);
-            return Ok(result);
+            if (result == null) return BadRequest("Unable to create promotion");
+            return CreatedAtAction(nameof(GetDetail), new { id = result.Id }, result);
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] PromotionCreateDto dto)
         {
             var result = await _promotionService.UpdatePromotionAsync(id, dto);
-            if (result == null) return NotFound();
+            if (result == null) return NotFound("Promotion does not exist");
             return Ok(result);
         }
 
