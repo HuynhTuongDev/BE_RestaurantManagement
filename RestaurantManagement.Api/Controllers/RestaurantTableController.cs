@@ -15,7 +15,7 @@ namespace RestaurantManagement.Api.Controllers
         {
             _restaurantTableService = restaurantTableService;
         }
-        
+
         // get list table by id
         [HttpGet("{id}")]
         public async Task<IActionResult> GetTable(int id)
