@@ -29,10 +29,6 @@ namespace RestaurantManagement.Api.Controllers
             if (dto.EndDate <= dto.StartDate)
                 return BadRequest(new { message = "EndDate must be greater than StartDate" });
 
-            // Optional: If you want to enforce that discount must be > 0
-            // if (dto.Discount <= 0 || dto.Discount > 100)
-            //     return BadRequest(new { message = "Discount must be between 1 and 100" });
-
             var result = await _promotionService.CreatePromotionAsync(dto);
 
             if (result == null)
@@ -62,18 +58,18 @@ namespace RestaurantManagement.Api.Controllers
         }
 
         /// <summary>
-        /// Delete a promotion
+        /// Lock a promotion
         /// </summary>
         [HttpDelete("{id:int}")]
         [Authorize(Roles = "Admin")] // Only Admin can delete promotions
         public async Task<IActionResult> Delete(int id)
         {
-            var success = await _promotionService.DeletePromotionAsync(id);
+            var success = await _promotionService.LockPromotionAsync(id);
 
             if (!success)
                 return NotFound(new { message = "Promotion not found" });
 
-            return Ok(new { message = "Promotion deleted successfully" });
+            return Ok(new { message = "Promotion locked successfully" });
         }
 
         /// <summary>

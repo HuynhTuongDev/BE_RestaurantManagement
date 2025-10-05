@@ -8,7 +8,7 @@ namespace RestaurantManagement.Domain.Interfaces
         Task<Promotion?> GetByIdAsync(int id);
         Task<IEnumerable<Promotion>> GetAllAsync();
         Task<Promotion> UpdateAsync(Promotion promotion);
-        Task<bool> DeleteAsync(int id);
+        Task<bool> LockAsync(int id);
         Task<Promotion?> GetByCodeAsync(string code);
     }
 }

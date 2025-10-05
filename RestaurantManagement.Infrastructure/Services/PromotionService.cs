@@ -49,9 +49,9 @@ namespace RestaurantManagement.Application.Services
             return MapToDto(updated);
         }
 
-        public async Task<bool> DeletePromotionAsync(int id)
+        public async Task<bool> LockPromotionAsync(int id)
         {
-            return await _promotionRepo.DeleteAsync(id);
+            return await _promotionRepo.LockAsync(id);
         }
 
         public async Task<IEnumerable<PromotionDto>> SearchPromotionsAsync(string keyword)
