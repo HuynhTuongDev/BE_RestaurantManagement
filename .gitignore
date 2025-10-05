@@ -30,5 +30,4 @@ x86/
 *.dbmdl
 *.jfm
 *.pdb
-**/appsettings.json
 
