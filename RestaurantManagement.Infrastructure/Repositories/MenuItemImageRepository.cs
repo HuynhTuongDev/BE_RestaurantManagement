@@ -20,7 +20,6 @@ namespace RestaurantManagement.Infrastructure.Repositories
         public async Task<MenuItemImage?> GetByIdAsync(int id)
         {
             return await _context.MenuItemImages
-                .Include(img => img.MenuItem)
                 .FirstOrDefaultAsync(img => img.Id == id);
         }
 

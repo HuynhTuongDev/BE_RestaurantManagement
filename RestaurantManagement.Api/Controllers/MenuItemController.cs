@@ -10,11 +10,9 @@ namespace RestaurantManagement.Api.Controllers
     [Authorize(Roles = "Admin,Staff")]
     public class MenuItemController : ControllerBase
     {
-        private readonly IMenuItemImageService _menuItemImageService;
         private readonly IMenuItemService _menuItemServices;
-        public MenuItemController(IMenuItemImageService menuItemImageService, IMenuItemService menuItemService)
+        public MenuItemController(IMenuItemService menuItemService)
         {
-            _menuItemImageService = menuItemImageService;
             _menuItemServices = menuItemService;
         }
 
@@ -45,7 +43,7 @@ namespace RestaurantManagement.Api.Controllers
             return CreatedAtAction(nameof(GetDish), new { id = created.Id }, created);
         }
 
-        
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetDish(int id)
         {
@@ -54,9 +52,9 @@ namespace RestaurantManagement.Api.Controllers
             return Ok(dish);
         }
 
-        
+
         [HttpPut("{id}")]
-        public async Task<IActionResult> EditDish(int id, 
+        public async Task<IActionResult> EditDish(int id,
             [FromBody] MenuItemCreateDto request)
         {
             if (!ModelState.IsValid)
@@ -66,17 +64,17 @@ namespace RestaurantManagement.Api.Controllers
             if (dish == null)
                 return NotFound(new { message = $"MenuItem {id} not found" });
 
-            
+
             dish.Name = request.Name;
             dish.Description = request.Description;
             dish.Price = request.Price;
             dish.Category = request.Category;
 
             await _menuItemServices.UpdateAsync(dish);
-            return NoContent(); 
+            return NoContent();
         }
 
-        
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteDish(int id)
         {
