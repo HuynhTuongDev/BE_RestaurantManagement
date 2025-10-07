@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using RestaurantManagement.Application.Services;
+﻿using RestaurantManagement.Application.Services;
 using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
 
@@ -21,7 +16,7 @@ namespace RestaurantManagement.Infrastructure.Services
         // add dish
         public async Task<MenuItem> AddAsync(MenuItem item)
         {
-            
+
             await _menuItemRepository.AddAsync(item);
             return item;
         }
@@ -44,7 +39,7 @@ namespace RestaurantManagement.Infrastructure.Services
 
         // Search by keyword (Name or Description)
         public Task<IEnumerable<MenuItem>> SearchAsync(string keyword)
-        {  
+        {
             return _menuItemRepository.SearchAsync(keyword);
         }
 

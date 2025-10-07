@@ -2,9 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
 using RestaurantManagement.Infrastructure.Data;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace RestaurantManagement.Infrastructure.Repositories
 {
@@ -20,21 +17,18 @@ namespace RestaurantManagement.Infrastructure.Repositories
         public async Task<MenuItem?> GetByIdAsync(int id)
         {
             return await _context.MenuItems
-                .Include(m => m.Images)
                 .FirstOrDefaultAsync(m => m.Id == id);
         }
 
         public async Task<IEnumerable<MenuItem>> GetAllAsync()
         {
             return await _context.MenuItems
-                .Include(m => m.Images)
                 .ToListAsync();
         }
 
         public async Task<IEnumerable<MenuItem>> GetByCategoryAsync(string category)
         {
             return await _context.MenuItems
-                .Include(m => m.Images)
                 .Where(m => m.Category == category)
                 .ToListAsync();
         }
@@ -68,9 +62,8 @@ namespace RestaurantManagement.Infrastructure.Repositories
 
         public async Task<IEnumerable<MenuItem>> SearchAsync(string keyword)
         {
-    
+
             return await _context.MenuItems
-                .Include(m => m.Images)
                 .Where(m =>
                     m.Name.Contains(keyword) ||
                     (m.Description != null && m.Description.Contains(keyword)))
