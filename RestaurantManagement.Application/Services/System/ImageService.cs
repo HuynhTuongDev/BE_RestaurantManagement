@@ -47,6 +47,13 @@ namespace RestaurantManagement.Application.Services.System
             var uploadParams = new ImageUploadParams
             {
                 File = new FileDescription(fileName, fileStream),
+                Transformation = new Transformation()
+                    .Quality("auto")
+                    .FetchFormat("auto")
+                    .Crop("limit")
+                    .Width(1920)
+                    .Height(1080)
+                    .Dpr("auto"),
                 Folder = _settings.Folder,
                 UseFilename = true,
                 UniqueFilename = true,
