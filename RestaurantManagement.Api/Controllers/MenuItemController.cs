@@ -6,7 +6,7 @@ using RestaurantManagement.Domain.Entities;
 namespace RestaurantManagement.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/menu-item")]
     [Authorize(Roles = "Admin,Staff")]
     public class MenuItemController : ControllerBase
     {

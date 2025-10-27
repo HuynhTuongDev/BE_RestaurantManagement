@@ -6,7 +6,7 @@ using RestaurantManagement.Domain.DTOs;
 namespace RestaurantManagement.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/promotion")]
     [Authorize(Roles = "Admin,Staff")] // Only Admin and Staff can manage promotions
     public class PromotionController : ControllerBase
     {

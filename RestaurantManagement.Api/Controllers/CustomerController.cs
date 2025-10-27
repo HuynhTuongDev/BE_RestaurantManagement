@@ -6,7 +6,7 @@ using RestaurantManagement.Domain.DTOs.UserDTOs;
 namespace RestaurantManagement.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/customer")]
     [Authorize(Roles = "Admin,Staff")] // Admin and Staff can manage customers
     public class CustomerController : ControllerBase
     {

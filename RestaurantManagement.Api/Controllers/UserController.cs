@@ -5,7 +5,7 @@ using RestaurantManagement.Domain.Interfaces;
 namespace RestaurantManagement.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/user")]
     public class UserController : ControllerBase
     {
         private readonly IUserRepository _userRepository;

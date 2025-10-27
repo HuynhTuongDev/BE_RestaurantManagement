@@ -2,14 +2,11 @@
 using Microsoft.AspNetCore.Mvc;
 using RestaurantManagement.Application.Services;
 using RestaurantManagement.Domain.DTOs;
-using System.Linq;
-using System.Security.Claims;
-using System.Threading.Tasks;
 
 namespace RestaurantManagement.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/order")]
     [Authorize]
     public class OrderController : ControllerBase
     {
