@@ -10,7 +10,7 @@ using System.Security.Claims;
 namespace RestaurantManagement.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/auth")]
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
@@ -149,7 +149,7 @@ namespace RestaurantManagement.Api.Controllers
             var result = await _authService.UpdatePasswordAsync(email!, resetRequest);
             if (result.Success)
                 return Ok(result);
-            
+
             return BadRequest(result);
         }
     }

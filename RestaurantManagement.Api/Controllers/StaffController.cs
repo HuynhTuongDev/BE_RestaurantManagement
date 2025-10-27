@@ -6,7 +6,7 @@ using RestaurantManagement.Domain.DTOs.UserDTOs;
 namespace RestaurantManagement.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/staff")]
     [Authorize(Roles = "Admin")] // Only Admin can manage staff
     public class StaffController : ControllerBase
     {

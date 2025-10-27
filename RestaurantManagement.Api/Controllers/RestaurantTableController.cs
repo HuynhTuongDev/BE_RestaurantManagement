@@ -6,7 +6,7 @@ using RestaurantManagement.Domain.DTOs;
 namespace RestaurantManagement.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/restaurant-table")]
     [Authorize(Roles = "Admin,Staff")]
     public class RestaurantTableController : ControllerBase
     {
