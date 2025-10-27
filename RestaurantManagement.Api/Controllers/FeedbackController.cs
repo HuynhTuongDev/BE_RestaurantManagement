@@ -8,7 +8,7 @@ using System.Security.Claims;
 namespace RestaurantManagement.Api.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/feedback")]
     public class FeedbackController : ControllerBase
     {
         private readonly IFeedbackService _service;
