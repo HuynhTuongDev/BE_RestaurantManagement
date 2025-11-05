@@ -87,15 +87,20 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IMenuItemRepository, MenuItemRepository>();
 builder.Services.AddScoped<IMenuItemImageRepository, MenuItemImageRepository>();
 builder.Services.AddScoped<IRestaurantTableRepository, RestaurantTableRepository>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
-
+builder.Services.AddScoped<IOrderService, OrderService>();
 
 
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IFeedbackService, FeedbackService>();
 builder.Services.AddScoped<IFeedbackRepository, FeedbackRepository>();
 
+// Payment Services (Payment Management)
+
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 // Staff and Customer Services (using Infrastructure implementations)
 builder.Services.AddScoped<IStaffService, StaffService>();
@@ -103,7 +108,7 @@ builder.Services.AddScoped<ICustomerService, CustomerService>();
 //MenuItem Services
 builder.Services.AddScoped<IMenuItemService, MenuItemService>();
 // Restaurant Table Services
-builder.Services.AddScoped<IRestaurantTableService,RestaurantTableService>();
+builder.Services.AddScoped<IRestaurantTableService, RestaurantTableService>();
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
