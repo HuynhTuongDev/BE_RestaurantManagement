@@ -1,4 +1,4 @@
-﻿using RestaurantManagement.Application.Services;
+using RestaurantManagement.Application.Services;
 using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
 
@@ -13,12 +13,17 @@ namespace RestaurantManagement.Infrastructure.Services
             _menuItemRepository = menuItemRepository;
         }
 
-        // add dish
+        // Get all menu items
+        public async Task<IEnumerable<MenuItem>> GetAllAsync()
+        {
+            return await _menuItemRepository.GetAllAsync();
+        }
+
+        // Add dish
         public async Task<MenuItem> AddAsync(MenuItem item)
         {
-
             await _menuItemRepository.AddAsync(item);
-            return item;
+            return item;    
         }
 
         // Delete dish by ID
@@ -26,7 +31,7 @@ namespace RestaurantManagement.Infrastructure.Services
         {
             var dish = await _menuItemRepository.GetByIdAsync(id);
             if (dish == null)
-                throw new KeyNotFoundException($"MenuItem {id} không tồn tại.");
+                throw new KeyNotFoundException($"MenuItem {id} kh�ng t?n t?i.");
 
             await _menuItemRepository.DeleteAsync(id);
         }
@@ -48,7 +53,7 @@ namespace RestaurantManagement.Infrastructure.Services
         {
             var existing = await _menuItemRepository.GetByIdAsync(item.Id);
             if (existing == null)
-                throw new KeyNotFoundException($"MenuItem {item.Id} không tồn tại.");
+                throw new KeyNotFoundException($"MenuItem {item.Id} kh�ng t?n t?i.");
 
             existing.Name = item.Name;
             existing.Description = item.Description;
