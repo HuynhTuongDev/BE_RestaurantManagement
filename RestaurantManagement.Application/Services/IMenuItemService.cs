@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,6 +9,7 @@ namespace RestaurantManagement.Application.Services
 {
     public interface IMenuItemService
     {
+        Task<IEnumerable<MenuItem>> GetAllAsync();
         Task<IEnumerable<MenuItem>> SearchAsync(string keyword);
         Task<MenuItem?> GetByIdAsync(int id);
         Task<MenuItem> AddAsync(MenuItem item);
