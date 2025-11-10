@@ -74,6 +74,14 @@ namespace RestaurantManagement.Infrastructure.Services
             }
         }
 
+        public async Task<IEnumerable<MenuItemImage>> GetImagesByMenuItemIdAsync(int menuItemId)
+        {
+            var images = await _menuItemImageRepository.GetByMenuItemIdAsync(menuItemId);
+            if (images == null)
+                throw new KeyNotFoundException("MenuItem images not found");
+
+            return images;
+        }
         private async Task CleanupImageAsync(string imageUrl)
         {
             try
