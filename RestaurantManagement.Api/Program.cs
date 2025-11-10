@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using RestaurantManagement.Api.Extensions;
 using RestaurantManagement.Application.Services;
 using RestaurantManagement.Application.Services.IUserService;
 using RestaurantManagement.Application.Services.IUserService.RestaurantManagement.Domain.Interfaces;
@@ -15,6 +16,7 @@ using RestaurantManagement.Domain.Interfaces;
 using RestaurantManagement.Infrastructure.Data;
 using RestaurantManagement.Infrastructure.Repositories;
 using RestaurantManagement.Infrastructure.Services;
+using RestaurantManagement.Infrastructure.Services.System;
 using RestaurantManagement.Infrastructure.Services.UserServices;
 using System.Text;
 
@@ -30,7 +32,7 @@ builder.Services.AddCors(options =>
          policy.WithOrigins("http://localhost:5173")
                .AllowAnyMethod()
                .AllowAnyHeader()
-               .AllowCredentials()); //
+               .AllowCredentials());
 });
 
 // JWT Settings
@@ -52,25 +54,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+// Authorization
+builder.Services.AddAuthorization();
+
 // Cloudinary settings
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("Cloudinary"));
 
-// Register Cloudinary and ImageService
+// Register Cloudinary
 builder.Services.AddSingleton(sp =>
 {
     var cfg = sp.GetRequiredService<IOptions<CloudinarySettings>>().Value;
     var account = new Account(cfg.CloudName, cfg.ApiKey, cfg.ApiSecret);
     return new Cloudinary(account) { Api = { Secure = true } };
 });
-
-// Register ImageService implementation
-builder.Services.AddScoped<IImageService, ImageService>();
-
-// Register MenuItemImageService (implementation in Infrastructure)
-builder.Services.AddScoped<IMenuItemImageService, MenuItemImageService>();
-
-// Authorization
-builder.Services.AddAuthorization();
 
 // PostgreSQL DbContext
 builder.Services.AddDbContext<RestaurantDbContext>(options =>
@@ -80,35 +76,16 @@ builder.Services.AddDbContext<RestaurantDbContext>(options =>
     )
 );
 
-// Dependency Injection
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IJwtService, JwtService>();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IMenuItemRepository, MenuItemRepository>();
-builder.Services.AddScoped<IMenuItemImageRepository, MenuItemImageRepository>();
-builder.Services.AddScoped<IRestaurantTableRepository, RestaurantTableRepository>();
-builder.Services.AddScoped<IOrderRepository, OrderRepository>();
-builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
-builder.Services.AddScoped<IPromotionService, PromotionService>();
-builder.Services.AddScoped<IOrderService, OrderService>();
+// ===== OPTIMIZED DEPENDENCY INJECTION =====
+// Add all services using extension methods
+builder.Services
+    .AddApplicationServices()      // IAuthService, IPaymentService, IOrderService, etc.
+    .AddInfrastructureServices()   // Repositories and infrastructure services
+    .AddSystemServices()            // IEmailService, IJwtService, IImageService, IMenuItemImageService
+    .AddAutoMapperProfiles()        // AutoMapper profiles
+    .AddCachingServices();          // Memory cache
 
-
-builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<IFeedbackService, FeedbackService>();
-builder.Services.AddScoped<IFeedbackRepository, FeedbackRepository>();
-
-// Payment Services (Payment Management)
-
-builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
-builder.Services.AddScoped<IPaymentService, PaymentService>();
-
-// Staff and Customer Services (using Infrastructure implementations)
-builder.Services.AddScoped<IStaffService, StaffService>();
-builder.Services.AddScoped<ICustomerService, CustomerService>();
-//MenuItem Services
-builder.Services.AddScoped<IMenuItemService, MenuItemService>();
-// Restaurant Table Services
-builder.Services.AddScoped<IRestaurantTableService, RestaurantTableService>();
+// ===== END OPTIMIZED DEPENDENCY INJECTION =====
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
@@ -144,6 +121,8 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+
+// Initialize admin user
 var adminConfig = builder.Configuration.GetSection("AdminAccount");
 var adminEmail = adminConfig["Email"] ?? throw new InvalidOperationException("Admin email configuration is missing.");
 var adminPassword = adminConfig["Password"] ?? throw new InvalidOperationException("Admin password configuration is missing.");
@@ -167,7 +146,8 @@ using (var scope = app.Services.CreateScope())
         db.SaveChanges();
     }
 }
-// Developer exception page
+
+// Configure middleware
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
@@ -179,7 +159,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// Middleware
+// Middleware pipeline
 app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
