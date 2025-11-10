@@ -2,8 +2,10 @@ namespace RestaurantManagement.Infrastructure.Repositories.Base;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using RestaurantManagement.Domain.DTOs.Common;
 using RestaurantManagement.Domain.Interfaces.Repositories;
 using RestaurantManagement.Infrastructure.Data;
+using RestaurantManagement.Infrastructure.Extensions;
 
 /// <summary>
 /// Base repository implementation with common CRUD operations
@@ -71,12 +73,109 @@ public abstract class BaseRepository<T> : IBaseRepository<T> where T : class
     }
 
     /// <summary>
+    /// Get paginated entities
+    /// </summary>
+    public virtual async Task<PaginatedResponse<T>> GetPaginatedAsync(PaginationRequest pagination)
+    {
+        try
+        {
+            Logger.LogInformation(
+                "Getting paginated {EntityName} - Page: {PageNumber}, Size: {PageSize}",
+                typeof(T).Name,
+                pagination.PageNumber,
+                pagination.PageSize);
+
+            var query = DbSet.AsQueryable();
+
+            // Apply sorting if specified
+            if (!string.IsNullOrWhiteSpace(pagination.SortBy))
+            {
+                query = query.ApplySorting(pagination);
+            }
+
+            var result = await query.ToPaginatedResponseAsync(pagination);
+
+            Logger.LogInformation(
+                "Retrieved {Count} {EntityName} out of {Total}",
+                result.Data.Count(),
+                typeof(T).Name,
+                result.TotalRecords);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error getting paginated {EntityName}", typeof(T).Name);
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Search entities by keyword
     /// </summary>
     public virtual async Task<IEnumerable<T>> SearchAsync(string keyword)
     {
-        Logger.LogInformation("Searching {EntityName} with keyword: {Keyword}", typeof(T).Name, keyword);
-        return await DbSet.ToListAsync();
+        try
+        {
+            Logger.LogInformation("Searching {EntityName} with keyword: {Keyword}", typeof(T).Name, keyword);
+            // Override in derived classes for specific search logic
+            return await GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error searching {EntityName}", typeof(T).Name);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Search entities with pagination
+    /// </summary>
+    public virtual async Task<PaginatedResponse<T>> SearchPaginatedAsync(
+        string keyword,
+        PaginationRequest pagination)
+    {
+        try
+        {
+            Logger.LogInformation(
+                "Searching paginated {EntityName} with keyword: {Keyword}",
+                typeof(T).Name,
+                keyword);
+
+            var allResults = await SearchAsync(keyword);
+            var query = allResults.AsQueryable();
+
+            // Apply sorting
+            if (!string.IsNullOrWhiteSpace(pagination.SortBy))
+            {
+                query = query.ApplySorting(pagination);
+            }
+
+            var totalRecords = query.Count();
+            var data = query
+                .Skip(pagination.SkipCount)
+                .Take(pagination.PageSize)
+                .ToList();
+
+            var result = PaginatedResponse<T>.Create(
+                data,
+                pagination.PageNumber,
+                pagination.PageSize,
+                totalRecords);
+
+            Logger.LogInformation(
+                "Found {Count} {EntityName} matching keyword out of {Total}",
+                result.Data.Count(),
+                typeof(T).Name,
+                result.TotalRecords);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error searching paginated {EntityName}", typeof(T).Name);
+            throw;
+        }
     }
 
     /// <summary>
@@ -86,7 +185,7 @@ public abstract class BaseRepository<T> : IBaseRepository<T> where T : class
     {
         try
         {
-            Logger.LogInformation("Creating new {EntityName}", typeof(T).Name);
+            Logger.LogInformation("Creating {EntityName}", typeof(T).Name);
             await DbSet.AddAsync(entity);
             await Context.SaveChangesAsync();
             Logger.LogInformation("Successfully created {EntityName}", typeof(T).Name);
@@ -126,14 +225,14 @@ public abstract class BaseRepository<T> : IBaseRepository<T> where T : class
     {
         try
         {
-            var entity = await GetByIdAsync(id);
+            Logger.LogInformation("Deleting {EntityName} with ID {Id}", typeof(T).Name, id);
+            var entity = await DbSet.FindAsync(id);
             if (entity == null)
             {
                 Logger.LogWarning("{EntityName} with ID {Id} not found", typeof(T).Name, id);
                 return false;
             }
 
-            Logger.LogInformation("Deleting {EntityName} with ID {Id}", typeof(T).Name, id);
             DbSet.Remove(entity);
             await Context.SaveChangesAsync();
             Logger.LogInformation("Successfully deleted {EntityName} with ID {Id}", typeof(T).Name, id);
@@ -141,7 +240,7 @@ public abstract class BaseRepository<T> : IBaseRepository<T> where T : class
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error deleting {EntityName}", typeof(T).Name);
+            Logger.LogError(ex, "Error deleting {EntityName} with ID {Id}", typeof(T).Name, id);
             throw;
         }
     }
@@ -151,6 +250,31 @@ public abstract class BaseRepository<T> : IBaseRepository<T> where T : class
     /// </summary>
     public virtual async Task<bool> ExistsAsync(int id)
     {
-        return await DbSet.FindAsync(id) != null;
+        try
+        {
+            return await DbSet.FindAsync(id) != null;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error checking existence of {EntityName} with ID {Id}", typeof(T).Name, id);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Get count of entities
+    /// </summary>
+    public virtual async Task<int> CountAsync()
+    {
+        try
+        {
+            Logger.LogInformation("Counting {EntityName}", typeof(T).Name);
+            return await DbSet.CountAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error counting {EntityName}", typeof(T).Name);
+            throw;
+        }
     }
 }

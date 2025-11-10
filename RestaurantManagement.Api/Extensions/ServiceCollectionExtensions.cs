@@ -3,15 +3,13 @@ namespace RestaurantManagement.Api.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using RestaurantManagement.Application.Services;
 using RestaurantManagement.Application.Services.IUserService;
+using RestaurantManagement.Application.Services.IUserService.RestaurantManagement.Domain.Interfaces;
 using RestaurantManagement.Application.Services.System;
 using RestaurantManagement.Domain.Interfaces;
-using RestaurantManagement.Infrastructure.Data;
 using RestaurantManagement.Infrastructure.Repositories;
 using RestaurantManagement.Infrastructure.Services;
 using RestaurantManagement.Infrastructure.Services.System;
 using RestaurantManagement.Infrastructure.Services.UserServices;
-using BackEnd.Service.ServiceImpl;
-using RestaurantManagement.Application.Services.IUserService.RestaurantManagement.Domain.Interfaces;
 using AutoMapper;
 
 /// <summary>

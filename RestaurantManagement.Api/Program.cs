@@ -1,11 +1,11 @@
-﻿using BackEnd.Service.ServiceImpl;
-using CloudinaryDotNet;
+﻿using CloudinaryDotNet;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using RestaurantManagement.Api.Extensions;
+using RestaurantManagement.Api.Middleware;
 using RestaurantManagement.Application.Services;
 using RestaurantManagement.Application.Services.IUserService;
 using RestaurantManagement.Application.Services.IUserService.RestaurantManagement.Domain.Interfaces;
@@ -147,6 +147,14 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+// ===== MIDDLEWARE PIPELINE =====
+
+// Add exception handling middleware (should be first)
+app.UseExceptionHandling();
+
+// Add request logging middleware
+app.UseRequestLogging();
+
 // Configure middleware
 if (app.Environment.IsDevelopment())
 {
@@ -165,5 +173,7 @@ app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// ===== END MIDDLEWARE PIPELINE =====
 
 app.Run();
