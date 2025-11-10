@@ -7,13 +7,9 @@ using System.Text;
 
 namespace RestaurantManagement.Application.Services.System
 {
-    public interface IJwtService
-    {
-        string GenerateToken(User user, string tokenType);
-        ClaimsPrincipal ValidateToken(string token, string tokenType)
-;
-    }
-
+    /// <summary>
+    /// JWT service implementation
+    /// </summary>
     public class JwtService : IJwtService
     {
         private readonly IConfiguration _configuration;
@@ -23,6 +19,9 @@ namespace RestaurantManagement.Application.Services.System
             _configuration = configuration;
         }
 
+        /// <summary>
+        /// Generate JWT token for user
+        /// </summary>
         public string GenerateToken(User user, string tokenType = "Access")
         {
             var jwtSettings = _configuration.GetSection("JwtSettings");
@@ -36,8 +35,10 @@ namespace RestaurantManagement.Application.Services.System
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.FullName),
                 new Claim(ClaimTypes.Role, user.Role.ToString()),
+                new Claim("id", user.Id.ToString()),
                 new Claim("typ", tokenType)
             };
+
             DateTime expires;
             if (tokenType == "Access")
             {
@@ -47,6 +48,7 @@ namespace RestaurantManagement.Application.Services.System
             {
                 expires = DateTime.UtcNow.AddMinutes(Convert.ToDouble(jwtSettings["Reset:ExpirationMinutes"]));
             }
+
             var token = new JwtSecurityToken(
                 issuer: jwtSettings["Issuer"],
                 audience: jwtSettings["Audience"],
@@ -58,10 +60,13 @@ namespace RestaurantManagement.Application.Services.System
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        public ClaimsPrincipal ValidateToken(string token, string tokenType = "Access")
+        /// <summary>
+        /// Validate JWT token
+        /// </summary>
+        public global::System.Security.Claims.ClaimsPrincipal? ValidateToken(string token, string tokenType = "Access")
         {
             if (string.IsNullOrWhiteSpace(token))
-                throw new SecurityTokenException("Token is required");
+                return null;
 
             try
             {
@@ -74,43 +79,66 @@ namespace RestaurantManagement.Application.Services.System
                 {
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = key,
-
                     ValidateIssuer = true,
                     ValidIssuer = jwtSettings["Issuer"],
-
                     ValidateAudience = true,
                     ValidAudience = jwtSettings["Audience"],
-
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.Zero
                 };
 
-                var principal = tokenHandler.ValidateToken(token, validationParameters, out var validatedToken)
-                                 ?? throw new SecurityTokenException("Token validation returned null");
+                var principal = tokenHandler.ValidateToken(token, validationParameters, out var validatedToken);
 
                 if (validatedToken is not JwtSecurityToken jwtToken)
-                    throw new SecurityTokenException("Invalid token format");
+                    return null;
 
                 if (jwtToken.Header.Alg != SecurityAlgorithms.HmacSha256)
-                    throw new SecurityTokenException("Invalid token algorithm");
+                    return null;
 
                 var typ = principal.FindFirst("typ")?.Value;
                 if (typ != tokenType)
-                    throw new SecurityTokenException("Invalid token type");
+                    return null;
 
                 return principal;
             }
-            catch (SecurityTokenExpiredException)
+            catch (Exception)
             {
-                throw new SecurityTokenException("Token has expired");
+                return null;
             }
-            catch (SecurityTokenException)
+        }
+
+        /// <summary>
+        /// Get user ID from token
+        /// </summary>
+        public int? GetUserIdFromToken(string token)
+        {
+            var principal = ValidateToken(token);
+            if (principal == null)
+                return null;
+
+            var userIdClaim = principal.FindFirst("id")?.Value
+                ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (int.TryParse(userIdClaim, out var userId))
+                return userId;
+
+            return null;
+        }
+
+        /// <summary>
+        /// Check if token is expired
+        /// </summary>
+        public bool IsTokenExpired(string token)
+        {
+            try
             {
-                throw;
+                var handler = new JwtSecurityTokenHandler();
+                var jwtToken = handler.ReadJwtToken(token);
+                return jwtToken.ValidTo < DateTime.UtcNow;
             }
-            catch (Exception ex)
+            catch
             {
-                throw new Exception($"Unexpected error during token validation: {ex.Message}", ex);
+                return true;
             }
         }
     }
