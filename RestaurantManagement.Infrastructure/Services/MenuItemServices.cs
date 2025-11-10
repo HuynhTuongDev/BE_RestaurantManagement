@@ -1,21 +1,21 @@
 using Microsoft.Extensions.Logging;
 using RestaurantManagement.Application.Services;
+using RestaurantManagement.Domain.DTOs.Common;
 using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
+using RestaurantManagement.Domain.Interfaces.Repositories;
 
 namespace RestaurantManagement.Infrastructure.Services
 {
     /// <summary>
-    /// Menu Item service implementation with logging and validation
+    /// Menu Item service implementation with logging
     /// </summary>
     public class MenuItemService : IMenuItemService
     {
         private readonly IMenuItemRepository _menuItemRepository;
         private readonly ILogger<MenuItemService> _logger;
 
-        public MenuItemService(
-            IMenuItemRepository menuItemRepository,
-            ILogger<MenuItemService> logger)
+        public MenuItemService(IMenuItemRepository menuItemRepository, ILogger<MenuItemService> logger)
         {
             _menuItemRepository = menuItemRepository;
             _logger = logger;
@@ -36,6 +36,44 @@ namespace RestaurantManagement.Infrastructure.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting all MenuItems");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Get paginated menu items
+        /// </summary>
+        public async Task<PaginatedResponse<MenuItem>> GetPaginatedAsync(PaginationRequest pagination)
+        {
+            try
+            {
+                _logger.LogInformation(
+                    "Getting paginated MenuItems - Page: {PageNumber}, Size: {PageSize}",
+                    pagination.PageNumber,
+                    pagination.PageSize);
+
+                // Cast to base repository
+                var baseRepo = _menuItemRepository as IBaseRepository<MenuItem>;
+                if (baseRepo == null)
+                {
+                    _logger.LogError("Repository does not implement IBaseRepository");
+                    throw new InvalidOperationException("Repository does not support pagination");
+                }
+
+                var paginatedItems = await baseRepo.GetPaginatedAsync(pagination);
+
+                _logger.LogInformation(
+                    "Retrieved {Count} menu items out of {Total} - Page {PageNumber}/{TotalPages}",
+                    paginatedItems.Data.Count(),
+                    paginatedItems.TotalRecords,
+                    paginatedItems.PageNumber,
+                    paginatedItems.TotalPages);
+
+                return paginatedItems;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting paginated MenuItems");
                 throw;
             }
         }
@@ -124,7 +162,7 @@ namespace RestaurantManagement.Infrastructure.Services
             try
             {
                 _logger.LogInformation("Searching MenuItems with keyword: {Keyword}", keyword);
-
+                
                 if (string.IsNullOrWhiteSpace(keyword))
                 {
                     _logger.LogWarning("Search keyword is empty");
@@ -132,15 +170,67 @@ namespace RestaurantManagement.Infrastructure.Services
                 }
 
                 var items = await _menuItemRepository.SearchAsync(keyword);
-
-                _logger.LogInformation("Search found {Count} MenuItems matching keyword: {Keyword}", 
-                    items.Count(), keyword);
-
+                _logger.LogInformation("Search found {Count} MenuItems", items.Count());
                 return items;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error searching MenuItems with keyword: {Keyword}", keyword);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Search menu items with pagination
+        /// </summary>
+        public async Task<PaginatedResponse<MenuItem>> SearchPaginatedAsync(
+            string keyword,
+            PaginationRequest pagination)
+        {
+            try
+            {
+                _logger.LogInformation(
+                    "Searching paginated MenuItems with keyword: {Keyword} - Page: {PageNumber}, Size: {PageSize}",
+                    keyword,
+                    pagination.PageNumber,
+                    pagination.PageSize);
+
+                if (string.IsNullOrWhiteSpace(keyword))
+                {
+                    _logger.LogWarning("Search keyword is empty");
+                    return PaginatedResponse<MenuItem>.Create(
+                        new List<MenuItem>(),
+                        pagination.PageNumber,
+                        pagination.PageSize,
+                        0);
+                }
+
+                var allItems = await _menuItemRepository.SearchAsync(keyword);
+
+                // Calculate pagination
+                var totalCount = allItems.Count();
+                var paginatedData = allItems
+                    .Skip(pagination.SkipCount)
+                    .Take(pagination.PageSize)
+                    .ToList();
+
+                var result = PaginatedResponse<MenuItem>.Create(
+                    paginatedData,
+                    pagination.PageNumber,
+                    pagination.PageSize,
+                    totalCount);
+
+                _logger.LogInformation(
+                    "Found {Count} menu items out of {Total} matching keyword: {Keyword}",
+                    result.Data.Count(),
+                    result.TotalRecords,
+                    keyword);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching paginated MenuItems with keyword: {Keyword}", keyword);
                 throw;
             }
         }

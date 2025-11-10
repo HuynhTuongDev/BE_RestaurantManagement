@@ -1,8 +1,10 @@
 ﻿using Microsoft.Extensions.Logging;
 using RestaurantManagement.Application.Services.IUserService;
+using RestaurantManagement.Domain.DTOs.Common;
 using RestaurantManagement.Domain.DTOs.UserDTOs;
 using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
+using RestaurantManagement.Domain.Interfaces.Repositories;
 
 namespace RestaurantManagement.Infrastructure.Services.UserServices
 {
@@ -22,7 +24,7 @@ namespace RestaurantManagement.Infrastructure.Services.UserServices
             try
             {
                 // Generate email if not provided (for walk-in customers)
-                string email = string.IsNullOrWhiteSpace(request.Email) 
+                string email = string.IsNullOrWhiteSpace(request.Email)
                     ? $"customer_{DateTime.UtcNow.Ticks}@temp.local"
                     : request.Email;
 
@@ -71,6 +73,51 @@ namespace RestaurantManagement.Infrastructure.Services.UserServices
             {
                 _logger.LogError(ex, "Error getting all customers");
                 return new List<CustomerDto>();
+            }
+        }
+
+        /// <summary>
+        /// Get paginated customers
+        /// </summary>
+        public async Task<PaginatedResponse<CustomerDto>> GetPaginatedAsync(PaginationRequest pagination)
+        {
+            try
+            {
+                _logger.LogInformation(
+                    "Getting paginated Customers - Page: {PageNumber}, Size: {PageSize}",
+                    pagination.PageNumber,
+                    pagination.PageSize);
+
+                // Get all customers first (filter by role)
+                var allCustomers = await _userRepository.GetByRoleAsync(UserRole.Customer);
+                
+                // Apply pagination manually
+                var totalCount = allCustomers.Count();
+                var paginatedData = allCustomers
+                    .Skip(pagination.SkipCount)
+                    .Take(pagination.PageSize)
+                    .Select(MapToCustomerDto)
+                    .ToList();
+
+                var result = PaginatedResponse<CustomerDto>.Create(
+                    paginatedData,
+                    pagination.PageNumber,
+                    pagination.PageSize,
+                    totalCount);
+
+                _logger.LogInformation(
+                    "Retrieved {Count} customers out of {Total} - Page {PageNumber}/{TotalPages}",
+                    result.Data.Count(),
+                    result.TotalRecords,
+                    result.PageNumber,
+                    result.TotalPages);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting paginated Customers");
+                throw;
             }
         }
 
@@ -163,6 +210,52 @@ namespace RestaurantManagement.Infrastructure.Services.UserServices
             {
                 _logger.LogError(ex, "Error searching customers with keyword {Keyword}", keyword);
                 return new List<CustomerDto>();
+            }
+        }
+
+        /// <summary>
+        /// Search customers with pagination
+        /// </summary>
+        public async Task<PaginatedResponse<CustomerDto>> SearchPaginatedAsync(
+            string keyword,
+            PaginationRequest pagination)
+        {
+            try
+            {
+                _logger.LogInformation(
+                    "Searching paginated Customers with keyword: {Keyword} - Page: {PageNumber}, Size: {PageSize}",
+                    keyword,
+                    pagination.PageNumber,
+                    pagination.PageSize);
+
+                var customers = await _userRepository.SearchByKeywordAsync(keyword, UserRole.Customer);
+
+                // Calculate pagination
+                var totalCount = customers.Count();
+                var paginatedData = customers
+                    .Skip(pagination.SkipCount)
+                    .Take(pagination.PageSize)
+                    .Select(MapToCustomerDto)
+                    .ToList();
+
+                var result = PaginatedResponse<CustomerDto>.Create(
+                    paginatedData,
+                    pagination.PageNumber,
+                    pagination.PageSize,
+                    totalCount);
+
+                _logger.LogInformation(
+                    "Found {Count} customers out of {Total} matching keyword: {Keyword}",
+                    result.Data.Count(),
+                    result.TotalRecords,
+                    keyword);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching paginated Customers with keyword: {Keyword}", keyword);
+                throw;
             }
         }
 

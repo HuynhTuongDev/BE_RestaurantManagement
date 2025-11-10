@@ -1,8 +1,10 @@
 ﻿using Microsoft.Extensions.Logging;
 using RestaurantManagement.Application.Services;
 using RestaurantManagement.Domain.DTOs;
+using RestaurantManagement.Domain.DTOs.Common;
 using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
+using RestaurantManagement.Domain.Interfaces.Repositories;
 
 namespace RestaurantManagement.Infrastructure.Services
 {
@@ -70,6 +72,44 @@ namespace RestaurantManagement.Infrastructure.Services
         }
 
         /// <summary>
+        /// Get paginated tables
+        /// </summary>
+        public async Task<PaginatedResponse<RestaurantTable>> GetPaginatedAsync(PaginationRequest pagination)
+        {
+            try
+            {
+                _logger.LogInformation(
+                    "Getting paginated RestaurantTables - Page: {PageNumber}, Size: {PageSize}",
+                    pagination.PageNumber,
+                    pagination.PageSize);
+
+                // Cast to base repository to access GetPaginatedAsync
+                var baseRepo = _restaurantTableRepository as IBaseRepository<RestaurantTable>;
+                if (baseRepo == null)
+                {
+                    _logger.LogError("Repository does not implement IBaseRepository");
+                    throw new InvalidOperationException("Repository does not support pagination");
+                }
+
+                var paginatedTables = await baseRepo.GetPaginatedAsync(pagination);
+
+                _logger.LogInformation(
+                    "Retrieved {Count} tables out of {Total} - Page {PageNumber}/{TotalPages}",
+                    paginatedTables.Data.Count(),
+                    paginatedTables.TotalRecords,
+                    paginatedTables.PageNumber,
+                    paginatedTables.TotalPages);
+
+                return paginatedTables;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting paginated RestaurantTables");
+                throw;
+            }
+        }
+
+        /// <summary>
         /// Search table by table number
         /// </summary>
         public async Task<IEnumerable<RestaurantTable>> SearchAsync(int tableNumber)
@@ -94,6 +134,62 @@ namespace RestaurantManagement.Infrastructure.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error searching RestaurantTable with number: {TableNumber}", tableNumber);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Search tables with pagination
+        /// </summary>
+        public async Task<PaginatedResponse<RestaurantTable>> SearchPaginatedAsync(
+            int tableNumber, 
+            PaginationRequest pagination)
+        {
+            try
+            {
+                _logger.LogInformation(
+                    "Searching paginated RestaurantTables with number: {TableNumber} - Page: {PageNumber}, Size: {PageSize}",
+                    tableNumber,
+                    pagination.PageNumber,
+                    pagination.PageSize);
+
+                if (tableNumber <= 0)
+                {
+                    _logger.LogWarning("Invalid table number: {TableNumber}", tableNumber);
+                    return PaginatedResponse<RestaurantTable>.Create(
+                        new List<RestaurantTable>(),
+                        pagination.PageNumber,
+                        pagination.PageSize,
+                        0);
+                }
+
+                // Use the base repository search
+                var allTables = await _restaurantTableRepository.SearchAsync(tableNumber);
+
+                // Calculate pagination
+                var totalCount = allTables.Count();
+                var paginatedData = allTables
+                    .Skip(pagination.SkipCount)
+                    .Take(pagination.PageSize)
+                    .ToList();
+
+                var result = PaginatedResponse<RestaurantTable>.Create(
+                    paginatedData,
+                    pagination.PageNumber,
+                    pagination.PageSize,
+                    totalCount);
+
+                _logger.LogInformation(
+                    "Found {Count} tables out of {Total} matching number: {TableNumber}",
+                    result.Data.Count(),
+                    result.TotalRecords,
+                    tableNumber);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching paginated RestaurantTables with number: {TableNumber}", tableNumber);
                 throw;
             }
         }
