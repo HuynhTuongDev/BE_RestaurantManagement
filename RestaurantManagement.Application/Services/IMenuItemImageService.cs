@@ -8,5 +8,6 @@ namespace RestaurantManagement.Application.Services
     public interface IMenuItemImageService
     {
         Task<MenuItemImage> UploadMenuItemImageAsync(int menuItemId, Stream fileStream, string fileName, CancellationToken cancellationToken = default);
+        Task<IEnumerable<MenuItemImage>> GetImagesByMenuItemIdAsync(int menuItemId);
     }
 }
