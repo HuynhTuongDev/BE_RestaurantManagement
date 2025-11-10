@@ -1,18 +1,20 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RestaurantManagement.Api.Controllers.Base;
 using RestaurantManagement.Application.Services;
 using RestaurantManagement.Domain.DTOs;
 
 namespace RestaurantManagement.Api.Controllers
 {
-    [ApiController]
     [Route("api/promotion")]
+    [ApiVersion("1.0")]
     [Authorize(Roles = "Admin,Staff")] // Only Admin and Staff can manage promotions
-    public class PromotionController : ControllerBase
+    public class PromotionController : BaseController
     {
         private readonly IPromotionService _promotionService;
 
-        public PromotionController(IPromotionService promotionService)
+        public PromotionController(IPromotionService promotionService, ILogger<PromotionController> logger)
+            : base(logger)
         {
             _promotionService = promotionService;
         }
@@ -21,40 +23,45 @@ namespace RestaurantManagement.Api.Controllers
         /// Create a new promotion
         /// </summary>
         [HttpPost]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Create([FromBody] PromotionCreateDto dto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+                return BadRequestResponse("Invalid promotion data");
 
             if (dto.EndDate <= dto.StartDate)
-                return BadRequest(new { message = "EndDate must be greater than StartDate" });
+                return BadRequestResponse("EndDate must be greater than StartDate");
 
             var result = await _promotionService.CreatePromotionAsync(dto);
 
             if (result == null)
-                return BadRequest(new { message = "Unable to create promotion" });
+                return BadRequestResponse("Unable to create promotion");
 
-            return CreatedAtAction(nameof(GetDetail), new { id = result.Id }, result);
+            return CreatedResponse(nameof(GetDetail), result.Id, result, "Promotion created successfully");
         }
 
         /// <summary>
         /// Update an existing promotion
         /// </summary>
         [HttpPut("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Update(int id, [FromBody] PromotionCreateDto dto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+                return BadRequestResponse("Invalid promotion data");
 
             if (dto.EndDate <= dto.StartDate)
-                return BadRequest(new { message = "EndDate must be greater than StartDate" });
+                return BadRequestResponse("EndDate must be greater than StartDate");
 
             var result = await _promotionService.UpdatePromotionAsync(id, dto);
 
             if (result == null)
-                return NotFound(new { message = "Promotion does not exist" });
+                return NotFoundResponse("Promotion does not exist");
 
-            return Ok(result);
+            return OkResponse(result, "Promotion updated successfully");
         }
 
         /// <summary>
@@ -62,55 +69,63 @@ namespace RestaurantManagement.Api.Controllers
         /// </summary>
         [HttpDelete("{id:int}")]
         [Authorize(Roles = "Admin")] // Only Admin can delete promotions
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Delete(int id)
         {
             var success = await _promotionService.LockPromotionAsync(id);
 
             if (!success)
-                return NotFound(new { message = "Promotion not found" });
+                return NotFoundResponse("Promotion not found");
 
-            return Ok(new { message = "Promotion locked successfully" });
+            return OkResponse(new { locked = true }, "Promotion locked successfully");
         }
 
         /// <summary>
         /// Search promotions by keyword
         /// </summary>
         [HttpGet("search")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Search([FromQuery] string keyword)
         {
             if (string.IsNullOrWhiteSpace(keyword))
-                return BadRequest(new { message = "Keyword is required" });
+                return BadRequestResponse("Keyword is required");
 
             var results = await _promotionService.SearchPromotionsAsync(keyword);
-            return Ok(results);
+            return OkListResponse(results, "Search completed successfully");
         }
 
         /// <summary>
         /// Apply a promotion code
         /// </summary>
         [HttpGet("apply/{code}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Apply(string code)
         {
             var promo = await _promotionService.ApplyPromotionAsync(code);
 
             if (promo == null)
-                return NotFound(new { message = "Promotion not valid, expired, or does not exist" });
+                return NotFoundResponse("Promotion not valid, expired, or does not exist");
 
-            return Ok(promo);
+            return OkResponse(promo, "Promotion applied successfully");
         }
 
         /// <summary>
         /// Get promotion details by ID
         /// </summary>
         [HttpGet("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetDetail(int id)
         {
             var promo = await _promotionService.GetPromotionDetailAsync(id);
 
             if (promo == null)
-                return NotFound(new { message = "Promotion not found" });
+                return NotFoundResponse("Promotion not found");
 
-            return Ok(promo);
+            return OkResponse(promo, "Promotion retrieved successfully");
         }
     }
 }

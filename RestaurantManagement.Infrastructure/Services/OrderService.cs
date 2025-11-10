@@ -1,8 +1,10 @@
 ﻿using Microsoft.Extensions.Logging;
 using RestaurantManagement.Application.Services;
 using RestaurantManagement.Domain.DTOs;
+using RestaurantManagement.Domain.DTOs.Common;
 using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
+using RestaurantManagement.Domain.Interfaces.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -70,6 +72,53 @@ namespace RestaurantManagement.Infrastructure.Services
             };
         }
 
+        /// <summary>
+        /// Get paginated orders
+        /// </summary>
+        public async Task<PaginatedResponse<OrderDto>> GetPaginatedAsync(PaginationRequest pagination)
+        {
+            try
+            {
+                _logger.LogInformation(
+                    "Getting paginated Orders - Page: {PageNumber}, Size: {PageSize}",
+                    pagination.PageNumber,
+                    pagination.PageSize);
+
+                // Cast to base repository
+                var baseRepo = _orderRepository as IBaseRepository<Order>;
+                if (baseRepo == null)
+                {
+                    _logger.LogError("Repository does not implement IBaseRepository");
+                    throw new InvalidOperationException("Repository does not support pagination");
+                }
+
+                var paginatedOrders = await baseRepo.GetPaginatedAsync(pagination);
+
+                // Map to DTOs
+                var mappedData = paginatedOrders.Data.Select(MapToDto);
+
+                var result = PaginatedResponse<OrderDto>.Create(
+                    mappedData,
+                    paginatedOrders.PageNumber,
+                    paginatedOrders.PageSize,
+                    paginatedOrders.TotalRecords);
+
+                _logger.LogInformation(
+                    "Retrieved {Count} orders out of {Total} - Page {PageNumber}/{TotalPages}",
+                    result.Data.Count(),
+                    result.TotalRecords,
+                    result.PageNumber,
+                    result.TotalPages);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting paginated Orders");
+                throw;
+            }
+        }
+
         public async Task<OrderDto?> GetOrderByIdAsync(int id, int? userId = null)
         {
             var order = await _orderRepository.GetByIdWithDetailsAsync(id);
@@ -88,6 +137,52 @@ namespace RestaurantManagement.Infrastructure.Services
                 Success = true,
                 Orders = orders.Select(MapToDto)
             };
+        }
+
+        /// <summary>
+        /// Search orders with pagination
+        /// </summary>
+        public async Task<PaginatedResponse<OrderDto>> SearchPaginatedAsync(
+            string keyword, 
+            PaginationRequest pagination)
+        {
+            try
+            {
+                _logger.LogInformation(
+                    "Searching paginated Orders with keyword: {Keyword} - Page: {PageNumber}, Size: {PageSize}",
+                    keyword,
+                    pagination.PageNumber,
+                    pagination.PageSize);
+
+                var allOrders = await _orderRepository.SearchByKeywordAsync(keyword);
+
+                // Calculate pagination
+                var totalCount = allOrders.Count();
+                var paginatedData = allOrders
+                    .Skip(pagination.SkipCount)
+                    .Take(pagination.PageSize)
+                    .Select(MapToDto)
+                    .ToList();
+
+                var result = PaginatedResponse<OrderDto>.Create(
+                    paginatedData,
+                    pagination.PageNumber,
+                    pagination.PageSize,
+                    totalCount);
+
+                _logger.LogInformation(
+                    "Found {Count} orders out of {Total} matching keyword: {Keyword}",
+                    result.Data.Count(),
+                    result.TotalRecords,
+                    keyword);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching paginated Orders with keyword: {Keyword}", keyword);
+                throw;
+            }
         }
 
         public async Task<OrderResponse> UpdateOrderAsync(int id, OrderUpdateRequest request)
