@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RestaurantManagement.Application.Services;
 namespace RestaurantManagement.Api.Controllers
@@ -73,6 +73,35 @@ namespace RestaurantManagement.Api.Controllers
             // This endpoint can be implemented later when needed
             await Task.CompletedTask; // Fixes CS1998 by adding an await
             return NotFound(new { message = "Endpoint not implemented" });
+        }
+
+        /// <summary>
+        /// Get all images for a specific menu item
+        /// </summary>
+        /// <param name="menuItemId">Menu item ID</param>
+        /// <returns>List of menu item images</returns>
+        [HttpGet]
+        [AllowAnonymous] // public access
+        public async Task<IActionResult> GetImages(int menuItemId)
+        {
+            try
+            {
+                var images = await _menuItemImageService.GetImagesByMenuItemIdAsync(menuItemId);
+                return Ok(images.Select(img => new
+                {
+                    id = img.Id,
+                    menuItemId = img.MenuItemId,
+                    imageUrl = img.ImageUrl
+                }));
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "MenuItem not found" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred", detail = ex.Message });
+            }
         }
     }
 }
