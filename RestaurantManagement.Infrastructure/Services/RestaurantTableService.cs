@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
+﻿using Microsoft.Extensions.Logging;
 using RestaurantManagement.Application.Services;
 using RestaurantManagement.Domain.DTOs;
 using RestaurantManagement.Domain.Entities;
@@ -11,70 +6,281 @@ using RestaurantManagement.Domain.Interfaces;
 
 namespace RestaurantManagement.Infrastructure.Services
 {
+    /// <summary>
+    /// Restaurant Table service implementation with logging and validation
+    /// </summary>
     public class RestaurantTableService : IRestaurantTableService
     {
         private readonly IRestaurantTableRepository _restaurantTableRepository;
-        public RestaurantTableService(IRestaurantTableRepository restaurantTableRepository)
+        private readonly ILogger<RestaurantTableService> _logger;
+
+        public RestaurantTableService(
+            IRestaurantTableRepository restaurantTableRepository,
+            ILogger<RestaurantTableService> logger)
         {
             _restaurantTableRepository = restaurantTableRepository;
+            _logger = logger;
         }
+
+        /// <summary>
+        /// Get table by id
+        /// </summary>
         public async Task<RestaurantTable?> GetByIdAsync(int id)
         {
-            return await _restaurantTableRepository.GetByIdAsync(id);
+            try
+            {
+                _logger.LogInformation("Getting RestaurantTable {TableId}", id);
+
+                var table = await _restaurantTableRepository.GetByIdAsync(id);
+
+                if (table == null)
+                    _logger.LogWarning("RestaurantTable {TableId} not found", id);
+                else
+                    _logger.LogInformation("Successfully retrieved RestaurantTable {TableId}", id);
+
+                return table;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting RestaurantTable {TableId}", id);
+                throw;
+            }
         }
+
+        /// <summary>
+        /// Get all tables
+        /// </summary>
         public async Task<IEnumerable<RestaurantTable>> GetAllAsync()
         {
-            return await _restaurantTableRepository.GetAllAsync();
+            try
+            {
+                _logger.LogInformation("Getting all RestaurantTables");
+
+                var tables = await _restaurantTableRepository.GetAllAsync();
+
+                _logger.LogInformation("Successfully retrieved {Count} RestaurantTables", tables.Count());
+
+                return tables;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all RestaurantTables");
+                throw;
+            }
         }
 
-        public async Task<IEnumerable<RestaurantTable>> SearchAsync(int TableNumber)
+        /// <summary>
+        /// Search table by table number
+        /// </summary>
+        public async Task<IEnumerable<RestaurantTable>> SearchAsync(int tableNumber)
         {
-            return await _restaurantTableRepository.SearchAsync(TableNumber);
-        } 
+            try
+            {
+                _logger.LogInformation("Searching RestaurantTable with number: {TableNumber}", tableNumber);
 
+                if (tableNumber <= 0)
+                {
+                    _logger.LogWarning("Invalid table number: {TableNumber}", tableNumber);
+                    return new List<RestaurantTable>();
+                }
+
+                var tables = await _restaurantTableRepository.SearchAsync(tableNumber);
+
+                _logger.LogInformation("Search found {Count} tables with number: {TableNumber}",
+                    tables.Count(), tableNumber);
+
+                return tables;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching RestaurantTable with number: {TableNumber}", tableNumber);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Add restaurant table
+        /// </summary>
         public async Task<RestaurantTable> AddAsync(RestaurantTableCreateDto dto)
         {
-            var restaurantTable = new RestaurantTable
+            try
             {
-                TableNumber = dto.TableNumber,
-                Seats = dto.Seats,
-                Status = dto.Status,
-                Location = dto.Location
-            };
-            await _restaurantTableRepository.AddAsync(restaurantTable);
-            return restaurantTable;
+                _logger.LogInformation("Creating RestaurantTable {TableNumber}", dto.TableNumber);
+
+                ValidateTableDto(dto);
+
+                var restaurantTable = new RestaurantTable
+                {
+                    TableNumber = dto.TableNumber,
+                    Seats = dto.Seats,
+                    Status = TableStatus.Available,
+                    Location = dto.Location
+                };
+
+                await _restaurantTableRepository.AddAsync(restaurantTable);
+
+                _logger.LogInformation("Successfully created RestaurantTable {TableNumber}", dto.TableNumber);
+
+                return restaurantTable;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating RestaurantTable");
+                throw;
+            }
         }
 
+        /// <summary>
+        /// Update restaurant table
+        /// </summary>
         public async Task UpdateAsync(int id, RestaurantTableCreateDto dto)
         {
-            var table = await _restaurantTableRepository.GetByIdAsync(id);
-            if (table == null) throw new KeyNotFoundException("Table not found.");
+            try
+            {
+                _logger.LogInformation("Updating RestaurantTable {TableId}", id);
 
-            table.TableNumber = dto.TableNumber;
-            table.Seats = dto.Seats;
-            table.Status = dto.Status;
-            table.Location = dto.Location;
-            await _restaurantTableRepository.UpdateAsync(table);
+                var table = await _restaurantTableRepository.GetByIdAsync(id);
+                if (table == null)
+                {
+                    _logger.LogWarning("RestaurantTable {TableId} not found", id);
+                    throw new KeyNotFoundException($"Table {id} not found");
+                }
+
+                ValidateTableDto(dto);
+
+                table.TableNumber = dto.TableNumber;
+                table.Seats = dto.Seats;
+                table.Location = dto.Location;
+
+                await _restaurantTableRepository.UpdateAsync(table);
+
+                _logger.LogInformation("Successfully updated RestaurantTable {TableId}", id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating RestaurantTable {TableId}", id);
+                throw;
+            }
         }
 
-        public async Task DeleteAsync(int id) => await _restaurantTableRepository.DeleteAsync(id);
+        /// <summary>
+        /// Delete restaurant table
+        /// </summary>
+        public async Task DeleteAsync(int id)
+        {
+            try
+            {
+                _logger.LogInformation("Deleting RestaurantTable {TableId}", id);
 
+                var table = await _restaurantTableRepository.GetByIdAsync(id);
+                if (table == null)
+                {
+                    _logger.LogWarning("RestaurantTable {TableId} not found", id);
+                    throw new KeyNotFoundException($"Table {id} not found");
+                }
+
+                await _restaurantTableRepository.DeleteAsync(id);
+
+                _logger.LogInformation("Successfully deleted RestaurantTable {TableId}", id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting RestaurantTable {TableId}", id);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Reserve table
+        /// </summary>
         public async Task<bool> ReserveAsync(int id)
         {
-            var table = await _restaurantTableRepository.GetByIdAsync(id);
-            if (table == null) return false;
-            table.Status = TableStatus.Reserved;
-            await _restaurantTableRepository.UpdateAsync(table);
-            return true;
+            try
+            {
+                _logger.LogInformation("Reserving RestaurantTable {TableId}", id);
+
+                var table = await _restaurantTableRepository.GetByIdAsync(id);
+                if (table == null)
+                {
+                    _logger.LogWarning("RestaurantTable {TableId} not found", id);
+                    return false;
+                }
+
+                if (table.Status != TableStatus.Available)
+                {
+                    _logger.LogWarning("RestaurantTable {TableId} is not available. Status: {Status}",
+                        id, table.Status);
+                    return false;
+                }
+
+                table.Status = TableStatus.Reserved;
+
+                await _restaurantTableRepository.UpdateAsync(table);
+
+                _logger.LogInformation("Successfully reserved RestaurantTable {TableId}", id);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reserving RestaurantTable {TableId}", id);
+                throw;
+            }
         }
 
+        /// <summary>
+        /// Cancel reservation
+        /// </summary>
         public async Task<bool> CancelReservationAsync(int id)
         {
-            var table = await _restaurantTableRepository.GetByIdAsync(id);
-            if (table == null) return false;
-            table.Status = TableStatus.Available;
-            await _restaurantTableRepository.UpdateAsync(table);
-            return true;
+            try
+            {
+                _logger.LogInformation("Canceling reservation for RestaurantTable {TableId}", id);
+
+                var table = await _restaurantTableRepository.GetByIdAsync(id);
+                if (table == null)
+                {
+                    _logger.LogWarning("RestaurantTable {TableId} not found", id);
+                    return false;
+                }
+
+                if (table.Status != TableStatus.Reserved)
+                {
+                    _logger.LogWarning("RestaurantTable {TableId} is not reserved. Status: {Status}",
+                        id, table.Status);
+                    return false;
+                }
+
+                table.Status = TableStatus.Available;
+
+                await _restaurantTableRepository.UpdateAsync(table);
+
+                _logger.LogInformation("Successfully canceled reservation for RestaurantTable {TableId}", id);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error canceling reservation for RestaurantTable {TableId}", id);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Validate restaurant table DTO
+        /// </summary>
+        private void ValidateTableDto(RestaurantTableCreateDto dto)
+        {
+            _logger.LogDebug("Validating RestaurantTableCreateDto");
+
+            if (dto.TableNumber <= 0)
+                throw new ArgumentException("Table number must be greater than 0");
+
+            if (dto.Seats <= 0)
+                throw new ArgumentException("Seats must be greater than 0");
+
+            if (dto.Seats > 20)
+                throw new ArgumentException("Seats cannot exceed 20");
         }
     }
 }

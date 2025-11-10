@@ -1,108 +1,241 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
 using RestaurantManagement.Infrastructure.Data;
+using RestaurantManagement.Infrastructure.Repositories.Base;
 
 namespace RestaurantManagement.Infrastructure.Repositories
 {
-    public class UserRepository : IUserRepository
+    /// <summary>
+    /// User repository implementation
+    /// </summary>
+    public class UserRepository : BaseRepository<User>, IUserRepository
     {
-        private readonly RestaurantDbContext _context;
-        
-        public UserRepository(RestaurantDbContext context)
+        public UserRepository(RestaurantDbContext context, ILogger<UserRepository> logger)
+            : base(context, logger)
         {
-            _context = context;
         }
-        
+
+        /// <summary>
+        /// Add user (explicit implementation)
+        /// </summary>
+        async Task IUserRepository.AddAsync(User user)
+        {
+            await CreateAsync(user);
+        }
+
+        /// <summary>
+        /// Update user (explicit implementation)
+        /// </summary>
+        async Task IUserRepository.UpdateAsync(User user)
+        {
+            await UpdateAsync(user);
+        }
+
+        /// <summary>
+        /// Get user by email
+        /// </summary>
         public async Task<User?> GetByEmailAsync(string email)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            try
+            {
+                Logger.LogInformation("Getting User with email: {Email}", email);
+                
+                if (string.IsNullOrWhiteSpace(email))
+                {
+                    Logger.LogWarning("Email is empty");
+                    return null;
+                }
+
+                return await DbSet.FirstOrDefaultAsync(u => u.Email == email);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error getting User with email: {Email}", email);
+                throw;
+            }
         }
-        
-        public async Task<User?> GetByIdAsync(int id) // Changed from long to int
-        {
-            return await _context.Users.FindAsync(id);
-        }
-        
+
+        /// <summary>
+        /// Check if email exists
+        /// </summary>
         public async Task<bool> EmailExistsAsync(string email)
         {
-            return await _context.Users.AnyAsync(u => u.Email == email);
+            try
+            {
+                Logger.LogInformation("Checking if email exists: {Email}", email);
+                return await DbSet.AnyAsync(u => u.Email == email);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error checking email existence: {Email}", email);
+                throw;
+            }
         }
-        
-        public async Task AddAsync(User user)
-        {
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-        }
-        
-        public async Task UpdateAsync(User user)
-        {
-            _context.Users.Update(user);
-            await _context.SaveChangesAsync();
-        }
-        
-        public async Task SaveChangesAsync()
-        {
-            await _context.SaveChangesAsync();
-        }
-        
+
+        /// <summary>
+        /// Soft delete user
+        /// </summary>
         public async Task<bool> SoftDeleteUserAsync(int userId)
         {
-            var user = await _context.Users.FindAsync(userId);
-            if (user == null) return false;
-            user.IsDeleted = true;
-            await _context.SaveChangesAsync();
-            return true;
+            try
+            {
+                Logger.LogInformation("Soft deleting User {UserId}", userId);
+                
+                var user = await DbSet.FindAsync(userId);
+                if (user == null)
+                {
+                    Logger.LogWarning("User {UserId} not found", userId);
+                    return false;
+                }
+
+                user.IsDeleted = true;
+                user.UpdatedAt = DateTime.UtcNow;
+                await UpdateAsync(user);
+                
+                Logger.LogInformation("Successfully soft deleted User {UserId}", userId);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error soft deleting User {UserId}", userId);
+                throw;
+            }
         }
 
+        /// <summary>
+        /// Lock user (suspend)
+        /// </summary>
         public async Task<bool> LockUserAsync(int userId)
         {
-            var user = await _context.Users.FindAsync(userId);
-            if (user == null) return false;
-            user.Status = UserStatus.Suspended;
-            await _context.SaveChangesAsync();
-            return true;
+            try
+            {
+                Logger.LogInformation("Locking User {UserId}", userId);
+                
+                var user = await DbSet.FindAsync(userId);
+                if (user == null)
+                {
+                    Logger.LogWarning("User {UserId} not found", userId);
+                    return false;
+                }
+
+                user.Status = UserStatus.Suspended;
+                user.UpdatedAt = DateTime.UtcNow;
+                await UpdateAsync(user);
+                
+                Logger.LogInformation("Successfully locked User {UserId}", userId);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error locking User {UserId}", userId);
+                throw;
+            }
         }
 
-        // Extended methods for Staff and Customer management
+        /// <summary>
+        /// Get users by role
+        /// </summary>
         public async Task<IEnumerable<User>> GetByRoleAsync(UserRole role)
         {
-            return await _context.Users
-                .Include(u => u.StaffProfile)
-                .Where(u => u.Role == role && !u.IsDeleted)
-                .ToListAsync();
+            try
+            {
+                Logger.LogInformation("Getting Users with role: {Role}", role);
+                
+                return await DbSet
+                    .Include(u => u.StaffProfile)
+                    .Where(u => u.Role == role && !u.IsDeleted)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error getting Users with role: {Role}", role);
+                throw;
+            }
         }
 
+        /// <summary>
+        /// Search users by keyword and optional role
+        /// </summary>
+        public override async Task<IEnumerable<User>> SearchAsync(string keyword)
+        {
+            return await SearchByKeywordAsync(keyword);
+        }
+
+        /// <summary>
+        /// Search users with role filter
+        /// </summary>
         public async Task<IEnumerable<User>> SearchByKeywordAsync(string keyword, UserRole? role = null)
         {
-            var query = _context.Users
-                .Include(u => u.StaffProfile)
-                .Where(u => !u.IsDeleted);
-
-            if (role.HasValue)
+            try
             {
-                query = query.Where(u => u.Role == role.Value);
-            }
+                Logger.LogInformation("Searching Users with keyword: {Keyword}, role: {Role}", keyword, role);
+                
+                var query = DbSet
+                    .Include(u => u.StaffProfile)
+                    .Where(u => !u.IsDeleted);
 
-            if (!string.IsNullOrWhiteSpace(keyword))
+                if (role.HasValue)
+                {
+                    query = query.Where(u => u.Role == role.Value);
+                }
+
+                if (!string.IsNullOrWhiteSpace(keyword))
+                {
+                    var searchTerm = keyword.ToLower();
+                    query = query.Where(u =>
+                        u.FullName.ToLower().Contains(searchTerm) ||
+                        u.Email.ToLower().Contains(searchTerm) ||
+                        (u.Phone != null && u.Phone.Contains(searchTerm)) ||
+                        (u.StaffProfile != null && u.StaffProfile.Position.ToLower().Contains(searchTerm))
+                    );
+                }
+
+                return await query.ToListAsync();
+            }
+            catch (Exception ex)
             {
-                keyword = keyword.ToLower();
-                query = query.Where(u => 
-                    u.FullName.ToLower().Contains(keyword) ||
-                    u.Email.ToLower().Contains(keyword) ||
-                    (u.Phone != null && u.Phone.Contains(keyword)) ||
-                    (u.StaffProfile != null && u.StaffProfile.Position.ToLower().Contains(keyword))
-                );
+                Logger.LogError(ex, "Error searching Users with keyword: {Keyword}", keyword);
+                throw;
             }
-
-            return await query.ToListAsync();
         }
 
+        /// <summary>
+        /// Get user by id with staff profile
+        /// </summary>
         public async Task<User?> GetByIdWithProfileAsync(int id)
         {
-            return await _context.Users
-                .Include(u => u.StaffProfile)
-                .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
+            try
+            {
+                Logger.LogInformation("Getting User {UserId} with profile", id);
+                
+                return await DbSet
+                    .Include(u => u.StaffProfile)
+                    .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error getting User {UserId} with profile", id);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Save changes
+        /// </summary>
+        public async Task SaveChangesAsync()
+        {
+            try
+            {
+                Logger.LogInformation("Saving changes to database");
+                await Context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error saving changes to database");
+                throw;
+            }
         }
     }
 }

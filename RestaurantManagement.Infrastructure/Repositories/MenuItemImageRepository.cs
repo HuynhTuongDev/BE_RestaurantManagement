@@ -1,60 +1,99 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
 using RestaurantManagement.Infrastructure.Data;
+using RestaurantManagement.Infrastructure.Repositories.Base;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace RestaurantManagement.Infrastructure.Repositories
 {
-    public class MenuItemImageRepository : IMenuItemImageRepository
+    /// <summary>
+    /// MenuItem Image repository implementation
+    /// </summary>
+    public class MenuItemImageRepository : BaseRepository<MenuItemImage>, IMenuItemImageRepository
     {
-        private readonly RestaurantDbContext _context;
-
-        public MenuItemImageRepository(RestaurantDbContext context)
+        public MenuItemImageRepository(RestaurantDbContext context, ILogger<MenuItemImageRepository> logger)
+            : base(context, logger)
         {
-            _context = context;
         }
 
-        public async Task<MenuItemImage?> GetByIdAsync(int id)
-        {
-            return await _context.MenuItemImages
-                .FirstOrDefaultAsync(img => img.Id == id);
-        }
-
+        /// <summary>
+        /// Get images by menu item id
+        /// </summary>
         public async Task<IEnumerable<MenuItemImage>> GetByMenuItemIdAsync(int menuItemId)
         {
-            return await _context.MenuItemImages
-                .Where(img => img.MenuItemId == menuItemId)
-                .ToListAsync();
-        }
-
-        public async Task AddAsync(MenuItemImage menuItemImage)
-        {
-            _context.MenuItemImages.Add(menuItemImage);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task UpdateAsync(MenuItemImage menuItemImage)
-        {
-            _context.MenuItemImages.Update(menuItemImage);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task DeleteAsync(int id)
-        {
-            var image = await _context.MenuItemImages.FindAsync(id);
-            if (image != null)
+            try
             {
-                _context.MenuItemImages.Remove(image);
-                await _context.SaveChangesAsync();
+                Logger.LogInformation("Getting MenuItemImages for MenuItem {MenuItemId}", menuItemId);
+                
+                return await DbSet
+                    .Where(img => img.MenuItemId == menuItemId)
+                    .ToListAsync();
+            }
+            catch (System.Exception ex)
+            {
+                Logger.LogError(ex, "Error getting MenuItemImages for MenuItem {MenuItemId}", menuItemId);
+                throw;
             }
         }
 
-        public async Task<bool> ExistsAsync(int id)
+        /// <summary>
+        /// Add image (explicit implementation)
+        /// </summary>
+        async Task IMenuItemImageRepository.AddAsync(MenuItemImage menuItemImage)
         {
-            return await _context.MenuItemImages.AnyAsync(img => img.Id == id);
+            await CreateAsync(menuItemImage);
+        }
+
+        /// <summary>
+        /// Update image (explicit implementation)
+        /// </summary>
+        async Task IMenuItemImageRepository.UpdateAsync(MenuItemImage menuItemImage)
+        {
+            await UpdateAsync(menuItemImage);
+        }
+
+        /// <summary>
+        /// Delete image (explicit implementation)
+        /// </summary>
+        async Task IMenuItemImageRepository.DeleteAsync(int id)
+        {
+            await DeleteAsync(id);
+        }
+
+        /// <summary>
+        /// Override search for images
+        /// </summary>
+        public override async Task<IEnumerable<MenuItemImage>> SearchAsync(string keyword)
+        {
+            try
+            {
+                Logger.LogInformation("Searching MenuItemImages with keyword: {Keyword}", keyword);
+                
+                if (string.IsNullOrWhiteSpace(keyword))
+                {
+                    Logger.LogWarning("Search keyword is empty");
+                    return new List<MenuItemImage>();
+                }
+
+                if (!int.TryParse(keyword, out var menuItemId))
+                {
+                    Logger.LogWarning("Invalid menu item id: {Keyword}", keyword);
+                    return new List<MenuItemImage>();
+                }
+
+                return await DbSet
+                    .Where(img => img.MenuItemId == menuItemId)
+                    .ToListAsync();
+            }
+            catch (System.Exception ex)
+            {
+                Logger.LogError(ex, "Error searching MenuItemImages with keyword: {Keyword}", keyword);
+                throw;
+            }
         }
     }
 }
