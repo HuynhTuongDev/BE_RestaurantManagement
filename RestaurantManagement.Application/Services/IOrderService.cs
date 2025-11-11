@@ -20,5 +20,6 @@ namespace RestaurantManagement.Application.Services
         Task<OrderResponse> UpdateOrderAsync(int id, OrderUpdateRequest request);
         Task<bool> CancelOrderAsync(int id, int? userId, bool isCustomerRequest);
         Task<OrderStatus?> GetOrderStatusAsync(int id, int? userId = null);
+        Task<OrderResponse> UpdateOrderStatusAsync(int id, OrderStatus status);
     }
 }
