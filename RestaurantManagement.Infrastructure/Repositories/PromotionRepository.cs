@@ -40,12 +40,12 @@ namespace RestaurantManagement.Infrastructure.Repositories
             return promotion;
         }
 
-        public async Task<bool> LockAsync(int id)
+        public async Task<bool> DeleteAsync(int id)
         {
             var promotion = await _context.Promotions.FindAsync(id);
             if (promotion == null) return false;
-            promotion.Status = PromotionStatus.Expired;
-            _context.Promotions.Update(promotion);
+
+            _context.Promotions.Remove(promotion);
             await _context.SaveChangesAsync();
             return true;
         }
