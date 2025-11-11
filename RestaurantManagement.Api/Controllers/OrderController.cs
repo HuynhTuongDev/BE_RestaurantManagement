@@ -4,7 +4,6 @@ using RestaurantManagement.Api.Controllers.Base;
 using RestaurantManagement.Application.Services;
 using RestaurantManagement.Domain.DTOs;
 using RestaurantManagement.Domain.DTOs.Common;
-using System.Security.Claims;
 
 namespace RestaurantManagement.Api.Controllers
 {
@@ -130,10 +129,10 @@ namespace RestaurantManagement.Api.Controllers
                 return BadRequestResponse("Invalid order data");
 
             var result = await _orderService.UpdateOrderAsync(id, request);
-            
+
             if (result.Success)
                 return OkResponse(result, "Order updated successfully");
-            
+
             return BadRequestResponse(result.Message);
         }
 
@@ -149,10 +148,10 @@ namespace RestaurantManagement.Api.Controllers
             bool isCustomer = User.IsInRole("Customer");
 
             var success = await _orderService.CancelOrderAsync(id, userId, isCustomer);
-            
+
             if (success)
                 return OkResponse(new { cancelled = true }, "Order cancelled successfully");
-            
+
             return BadRequestResponse("Cannot cancel order");
         }
 
@@ -178,7 +177,7 @@ namespace RestaurantManagement.Api.Controllers
         /// </summary>
         private int? GetUserIdFromToken()
         {
-            var idClaim = User.Claims.FirstOrDefault(c => c.Type == "id" || c.Type == ClaimTypes.NameIdentifier)?.Value;
+            var idClaim = User.Claims.FirstOrDefault()?.Value;
             if (int.TryParse(idClaim, out var id))
                 return id;
 

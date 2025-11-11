@@ -10,7 +10,6 @@ using RestaurantManagement.Domain.DTOs.Common;
 /// </summary>
 [ApiController]
 [Route("api/v{version:apiVersion}/[controller]")]
-[Authorize]
 public abstract class BaseController : ControllerBase
 {
     /// <summary>
@@ -97,11 +96,7 @@ public abstract class BaseController : ControllerBase
     {
         Logger.LogWarning("Returning Bad Request response: {Message}", message);
 
-        return BadRequest(new ApiResponse
-        {
-            Success = false,
-            Message = message
-        });
+        return BadRequest(new { message });
     }
 
     /// <summary>
@@ -111,11 +106,7 @@ public abstract class BaseController : ControllerBase
     {
         Logger.LogWarning("Returning Not Found response: {Message}", message);
 
-        return NotFound(new ApiResponse
-        {
-            Success = false,
-            Message = message
-        });
+        return NotFound(new { message });
     }
 
     /// <summary>
@@ -125,11 +116,7 @@ public abstract class BaseController : ControllerBase
     {
         Logger.LogWarning("Returning Unauthorized response: {Message}", message);
 
-        return Unauthorized(new ApiResponse
-        {
-            Success = false,
-            Message = message
-        });
+        return Unauthorized(new { message });
     }
 
     /// <summary>
@@ -139,7 +126,7 @@ public abstract class BaseController : ControllerBase
     {
         Logger.LogWarning("Returning Forbidden response: {Message}", message);
 
-        return Forbid();
+        return StatusCode(StatusCodes.Status403Forbidden, new { message });
     }
 
     /// <summary>
@@ -149,11 +136,7 @@ public abstract class BaseController : ControllerBase
     {
         Logger.LogWarning("Returning Conflict response: {Message}", message);
 
-        return Conflict(new ApiResponse
-        {
-            Success = false,
-            Message = message
-        });
+        return Conflict(new { message });
     }
 
     /// <summary>
@@ -163,11 +146,7 @@ public abstract class BaseController : ControllerBase
     {
         Logger.LogWarning("Returning Unprocessable Entity response: {Message}", message);
 
-        return UnprocessableEntity(new ApiResponse
-        {
-            Success = false,
-            Message = message
-        });
+        return UnprocessableEntity(new { message });
     }
 
     /// <summary>
@@ -177,10 +156,6 @@ public abstract class BaseController : ControllerBase
     {
         Logger.LogError("Returning Internal Server Error response: {Message}", message);
 
-        return StatusCode(StatusCodes.Status500InternalServerError, new ApiResponse
-        {
-            Success = false,
-            Message = message
-        });
+        return StatusCode(StatusCodes.Status500InternalServerError, new { message });
     }
 }
