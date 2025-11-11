@@ -64,7 +64,7 @@ namespace RestaurantManagement.Api.Controllers
         [Authorize(Roles = "Admin")] // Only Admin can delete promotions
         public async Task<IActionResult> Delete(int id)
         {
-            var success = await _promotionService.LockPromotionAsync(id);
+            var success = await _promotionService.DeleteAsync(id);
 
             if (!success)
                 return NotFound(new { message = "Promotion not found" });
@@ -76,12 +76,9 @@ namespace RestaurantManagement.Api.Controllers
         /// Search promotions by keyword
         /// </summary>
         [HttpGet("search")]
-        public async Task<IActionResult> Search([FromQuery] string keyword)
+        public async Task<IActionResult> Search([FromQuery] string? keyword)
         {
-            if (string.IsNullOrWhiteSpace(keyword))
-                return BadRequest(new { message = "Keyword is required" });
-
-            var results = await _promotionService.SearchPromotionsAsync(keyword);
+            var results = await _promotionService.SearchPromotionsAsync(keyword ?? "");
             return Ok(results);
         }
 

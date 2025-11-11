@@ -124,7 +124,7 @@ namespace RestaurantManagement.Api.Controllers
         /// </summary>
         private int? GetUserIdFromToken()
         {
-            var idClaim = User.Claims.FirstOrDefault(c => c.Type == "id")?.Value;
+            var idClaim = User.Claims.FirstOrDefault()?.Value;
             if (int.TryParse(idClaim, out var id))
                 return id;
 
