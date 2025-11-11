@@ -3,6 +3,7 @@ using CloudinaryDotNet.Actions;
 using Microsoft.Extensions.Logging;
 using RestaurantManagement.Application.Services;
 using RestaurantManagement.Application.Services.System;
+using RestaurantManagement.Domain.DTOs.Common;
 using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
 
@@ -71,6 +72,90 @@ namespace RestaurantManagement.Infrastructure.Services
                 await CleanupImageAsync(imageUrl);
 
                 throw new InvalidOperationException("Failed to save image record", ex);
+            }
+        }
+
+        public async Task<MenuItemImage?> GetImageByIdAsync(int imageId)
+        {
+            try
+            {
+                return await _menuItemImageRepository.GetByIdAsync(imageId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving image {ImageId}", imageId);
+                return null;
+            }
+        }
+
+        public async Task<IEnumerable<MenuItemImage>> GetImagesByMenuItemIdAsync(int menuItemId)
+        {
+            try
+            {
+                // Validate MenuItem exists
+                var menuItem = await _menuItemRepository.GetByIdAsync(menuItemId);
+                if (menuItem == null)
+                    throw new KeyNotFoundException($"MenuItem with ID {menuItemId} not found");
+
+                return await _menuItemImageRepository.GetByMenuItemIdAsync(menuItemId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving images for MenuItem {MenuItemId}", menuItemId);
+                throw;
+            }
+        }
+
+        public async Task<PaginatedResponse<MenuItemImage>> GetPaginatedImagesByMenuItemIdAsync(int menuItemId, PaginationRequest pagination)
+        {
+            try
+            {
+                // Validate MenuItem exists
+                var menuItem = await _menuItemRepository.GetByIdAsync(menuItemId);
+                if (menuItem == null)
+                    throw new KeyNotFoundException($"MenuItem with ID {menuItemId} not found");
+
+                var allImages = await _menuItemImageRepository.GetByMenuItemIdAsync(menuItemId);
+                var imageList = allImages.ToList();
+
+                var totalCount = imageList.Count;
+                var paginatedData = imageList
+                    .Skip(pagination.SkipCount)
+                    .Take(pagination.PageSize)
+                    .ToList();
+
+                return PaginatedResponse<MenuItemImage>.Create(
+                    paginatedData,
+                    pagination.PageNumber,
+                    pagination.PageSize,
+                    totalCount);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving paginated images for MenuItem {MenuItemId}", menuItemId);
+                throw;
+            }
+        }
+
+        public async Task<bool> DeleteImageAsync(int imageId)
+        {
+            try
+            {
+                var image = await _menuItemImageRepository.GetByIdAsync(imageId);
+                if (image == null)
+                    return false;
+
+                // Cleanup from Cloudinary
+                await CleanupImageAsync(image.ImageUrl);
+
+                // Delete from database
+                await _menuItemImageRepository.DeleteAsync(imageId);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting image {ImageId}", imageId);
+                throw;
             }
         }
 
