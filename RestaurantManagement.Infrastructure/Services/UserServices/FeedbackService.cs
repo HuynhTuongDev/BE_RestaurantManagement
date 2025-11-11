@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using RestaurantManagement.Application.Services.IUserService.RestaurantManagement.Domain.Interfaces;
+using RestaurantManagement.Domain.DTOs.Common;
 using RestaurantManagement.Domain.DTOs.UserDTOs;
 using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
@@ -36,6 +37,40 @@ namespace RestaurantManagement.Infrastructure.Services.UserServices
                 RepliedAt = f.RepliedAt
             });
         }
+
+        public async Task<PaginatedResponse<FeedbackDto>> GetPaginatedAsync(PaginationRequest pagination)
+        {
+            var allFeedbacks = await _repository.GetAllAsync();
+
+            var totalCount = allFeedbacks.Count;
+            var paginatedData = allFeedbacks
+                .Skip(pagination.SkipCount)
+                .Take(pagination.PageSize)
+                .Select(f => new FeedbackDto
+                {
+                    Id = f.Id,
+                    UserId = f.UserId,
+                    UserName = f.User?.FullName ?? string.Empty,
+                    OrderId = f.OrderId,
+                    MenuItemId = f.MenuItemId,
+                    MenuItemName = f.MenuItem?.Name,
+                    Rating = f.Rating,
+                    Comment = f.Comment,
+                    IsApproved = f.IsApproved,
+                    CreatedAt = f.CreatedAt,
+                    UpdatedAt = f.UpdatedAt,
+                    Reply = f.Reply,
+                    RepliedAt = f.RepliedAt
+                })
+                .ToList();
+
+            return PaginatedResponse<FeedbackDto>.Create(
+                paginatedData,
+                pagination.PageNumber,
+                pagination.PageSize,
+                totalCount);
+        }
+
         public async Task<FeedbackDto> GetByIdAsync(int? id)
         {
             if (!id.HasValue || id.Value <= 0)

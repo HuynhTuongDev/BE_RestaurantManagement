@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using RestaurantManagement.Application.Services;
 using RestaurantManagement.Domain.DTOs;
+using RestaurantManagement.Domain.DTOs.Common;
 using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
 
@@ -201,6 +202,60 @@ namespace RestaurantManagement.Infrastructure.Services
                 _logger.LogError(ex, "Error getting Promotion details");
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Get all promotions
+        /// </summary>
+        public async Task<IEnumerable<PromotionDto>> GetAllPromotionsAsync()
+        {
+            var all = await _promotionRepository.GetAllAsync();
+            return all.Select(MapToDto);
+        }
+
+        /// <summary>
+        /// Get paginated promotions
+        /// </summary>
+        public async Task<PaginatedResponse<PromotionDto>> GetPaginatedAsync(PaginationRequest pagination)
+        {
+            var all = await _promotionRepository.GetAllAsync();
+            
+            var totalCount = all.Count();
+            var paginatedData = all
+                .Skip(pagination.SkipCount)
+                .Take(pagination.PageSize)
+                .Select(MapToDto)
+                .ToList();
+
+            return PaginatedResponse<PromotionDto>.Create(
+                paginatedData,
+                pagination.PageNumber,
+                pagination.PageSize,
+                totalCount);
+        }
+
+        /// <summary>
+        /// Search paginated promotions by keyword
+        /// </summary>
+        public async Task<PaginatedResponse<PromotionDto>> SearchPaginatedAsync(
+            string keyword,
+            PaginationRequest pagination)
+        {
+            var all = await _promotionRepository.GetAllAsync();
+            var filtered = all.Where(p => p.Code.Contains(keyword) || (p.Description ?? "").Contains(keyword)).ToList();
+
+            var totalCount = filtered.Count;
+            var paginatedData = filtered
+                .Skip(pagination.SkipCount)
+                .Take(pagination.PageSize)
+                .Select(MapToDto)
+                .ToList();
+
+            return PaginatedResponse<PromotionDto>.Create(
+                paginatedData,
+                pagination.PageNumber,
+                pagination.PageSize,
+                totalCount);
         }
 
         /// <summary>

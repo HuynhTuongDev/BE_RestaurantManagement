@@ -1,21 +1,23 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RestaurantManagement.Api.Controllers.Base;
 using RestaurantManagement.Application.Services;
 using RestaurantManagement.Domain.DTOs;
+using RestaurantManagement.Domain.DTOs.Common;
 using RestaurantManagement.Domain.Entities;
-using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
 
 namespace RestaurantManagement.Api.Controllers
 {
-    [ApiController]
     [Route("api/payment")]
+    [ApiVersion("1.0")]
     [Authorize]
-    public class PaymentController : ControllerBase
+    public class PaymentController : BaseController
     {
         private readonly IPaymentService _paymentService;
 
-        public PaymentController(IPaymentService paymentService)
+        public PaymentController(IPaymentService paymentService, ILogger<PaymentController> logger)
+            : base(logger)
         {
             _paymentService = paymentService;
         }
@@ -24,16 +26,18 @@ namespace RestaurantManagement.Api.Controllers
         /// Create a new payment for an order
         /// </summary>
         [HttpPost]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreatePayment([FromBody] PaymentCreateDto dto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+                return BadRequestResponse("Invalid payment data");
 
             var result = await _paymentService.CreatePaymentAsync(dto);
             if (result.Success)
-                return CreatedAtAction(nameof(GetPaymentById), new { id = result.Payment!.Id }, result);
+                return CreatedResponse(nameof(GetPaymentById), result.Payment!.Id, result.Payment, result.Message);
 
-            return BadRequest(result);
+            return BadRequestResponse(result.Message);
         }
 
         /// <summary>
@@ -41,33 +45,49 @@ namespace RestaurantManagement.Api.Controllers
         /// </summary>
         [HttpGet]
         [Authorize(Roles = "Admin,Staff")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAllPayments()
         {
             var result = await _paymentService.GetAllPaymentsAsync();
-            return Ok(result);
+            return OkListResponse(result.Payments, result.Message);
+        }
+
+        /// <summary>
+        /// Get paginated payments (Admin/Staff only)
+        /// </summary>
+        [HttpGet("paginated")]
+        [Authorize(Roles = "Admin,Staff")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetPaginatedPayments([FromQuery] PaginationRequest pagination)
+        {
+            var paginatedPayments = await _paymentService.GetPaginatedAsync(pagination);
+            return OkPaginatedResponse(paginatedPayments, "Payments retrieved successfully");
         }
 
         /// <summary>
         /// Get payment by ID
         /// </summary>
         [HttpGet("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetPaymentById(int id)
         {
             var payment = await _paymentService.GetPaymentByIdAsync(id);
             if (payment == null)
-                return NotFound(new { message = "Payment not found" });
+                return NotFoundResponse("Payment not found");
 
-            return Ok(payment);
+            return OkResponse(payment, "Payment retrieved successfully");
         }
 
         /// <summary>
         /// Get all payments for a specific order
         /// </summary>
         [HttpGet("order/{orderId:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> GetPaymentsByOrderId(int orderId)
         {
             var payments = await _paymentService.GetPaymentsByOrderIdAsync(orderId);
-            return Ok(payments);
+            return OkListResponse(payments, "Payments retrieved successfully");
         }
 
         /// <summary>
@@ -75,10 +95,11 @@ namespace RestaurantManagement.Api.Controllers
         /// </summary>
         [HttpGet("status/{status}")]
         [Authorize(Roles = "Admin,Staff")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> GetPaymentsByStatus(PaymentStatus status)
         {
             var payments = await _paymentService.GetPaymentsByStatusAsync(status);
-            return Ok(payments);
+            return OkListResponse(payments, "Payments retrieved successfully");
         }
 
         /// <summary>
@@ -86,16 +107,18 @@ namespace RestaurantManagement.Api.Controllers
         /// </summary>
         [HttpPut("{id:int}/status")]
         [Authorize(Roles = "Admin")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> UpdatePaymentStatus(int id, [FromBody] PaymentStatusUpdateDto dto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+                return BadRequestResponse("Invalid status update data");
 
             var result = await _paymentService.UpdatePaymentStatusAsync(id, dto.Status);
             if (result.Success)
-                return Ok(result);
+                return OkResponse(result.Payment!, result.Message);
 
-            return BadRequest(result);
+            return BadRequestResponse(result.Message);
         }
 
         /// <summary>
@@ -103,13 +126,15 @@ namespace RestaurantManagement.Api.Controllers
         /// </summary>
         [HttpDelete("{id:int}")]
         [Authorize(Roles = "Admin")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeletePayment(int id)
         {
             var success = await _paymentService.DeletePaymentAsync(id);
             if (success)
-                return Ok(new { message = "Payment deleted successfully" });
+                return OkResponse(new { deleted = true }, "Payment deleted successfully");
 
-            return NotFound(new { message = "Payment not found" });
+            return NotFoundResponse("Payment not found");
         }
 
         /// <summary>
@@ -117,13 +142,33 @@ namespace RestaurantManagement.Api.Controllers
         /// </summary>
         [HttpGet("search")]
         [Authorize(Roles = "Admin,Staff")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> SearchPayments([FromQuery] string transactionCode)
         {
             if (string.IsNullOrWhiteSpace(transactionCode))
-                return BadRequest(new { message = "Transaction code is required" });
+                return BadRequestResponse("Transaction code is required");
 
             var payments = await _paymentService.SearchPaymentsByTransactionCodeAsync(transactionCode);
-            return Ok(payments);
+            return OkListResponse(payments, "Search completed successfully");
+        }
+
+        /// <summary>
+        /// Search payments by transaction code with pagination (Admin/Staff only)
+        /// </summary>
+        [HttpGet("search/paginated")]
+        [Authorize(Roles = "Admin,Staff")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> SearchPaginatedPayments(
+            [FromQuery] string transactionCode,
+            [FromQuery] PaginationRequest pagination)
+        {
+            if (string.IsNullOrWhiteSpace(transactionCode))
+                return BadRequestResponse("Transaction code is required");
+
+            var paginatedPayments = await _paymentService.SearchPaginatedAsync(transactionCode, pagination);
+            return OkPaginatedResponse(paginatedPayments, "Search completed successfully");
         }
 
         /// <summary>
@@ -131,13 +176,15 @@ namespace RestaurantManagement.Api.Controllers
         /// </summary>
         [HttpGet("date-range")]
         [Authorize(Roles = "Admin,Staff")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetPaymentsByDateRange([FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
         {
             if (startDate > endDate)
-                return BadRequest(new { message = "Start date must be before end date" });
+                return BadRequestResponse("Start date must be before end date");
 
             var payments = await _paymentService.GetPaymentsByDateRangeAsync(startDate, endDate);
-            return Ok(payments);
+            return OkListResponse(payments, "Payments retrieved successfully");
         }
 
         /// <summary>
@@ -145,10 +192,11 @@ namespace RestaurantManagement.Api.Controllers
         /// </summary>
         [HttpGet("revenue/total")]
         [Authorize(Roles = "Admin")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> GetTotalRevenue()
         {
             var totalRevenue = await _paymentService.GetTotalRevenueAsync();
-            return Ok(new { totalRevenue });
+            return OkResponse(new { totalRevenue }, "Total revenue retrieved successfully");
         }
 
         /// <summary>
@@ -156,27 +204,30 @@ namespace RestaurantManagement.Api.Controllers
         /// </summary>
         [HttpGet("statistics")]
         [Authorize(Roles = "Admin")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> GetPaymentStatistics()
         {
             var statistics = await _paymentService.GetPaymentStatisticsAsync();
-            return Ok(statistics);
+            return OkResponse(statistics, "Statistics retrieved successfully");
         }
 
         /// <summary>
         /// Verify payment with transaction code (webhook endpoint or manual verification)
         /// </summary>
         [HttpPost("{id:int}/verify")]
-        [AllowAnonymous] // Can be restricted based on webhook signature
+        [AllowAnonymous]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> VerifyPayment(int id, [FromBody] VerifyPaymentDto dto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+                return BadRequestResponse("Invalid verification data");
 
             var success = await _paymentService.VerifyPaymentAsync(id, dto.TransactionCode);
             if (success)
-                return Ok(new { message = "Payment verified successfully" });
+                return OkResponse(new { verified = true }, "Payment verified successfully");
 
-            return BadRequest(new { message = "Payment verification failed" });
+            return BadRequestResponse("Payment verification failed");
         }
     }
 

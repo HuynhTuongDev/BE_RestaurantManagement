@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using RestaurantManagement.Api.Controllers.Base;
 using RestaurantManagement.Application.Services.IUserService.RestaurantManagement.Domain.Interfaces;
+using RestaurantManagement.Domain.DTOs.Common;
 using RestaurantManagement.Domain.DTOs.UserDTOs;
 using RestaurantManagement.Domain.Entities;
 using System.Security.Claims;
@@ -27,6 +28,16 @@ namespace RestaurantManagement.Api.Controllers
         {
             var feedbacks = await _service.GetAllAsync();
             return OkListResponse(feedbacks, "Feedbacks retrieved successfully");
+        }
+
+        // GET: api/feedback/paginated
+        [HttpGet("paginated")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetPaginated([FromQuery] PaginationRequest pagination)
+        {
+            var paginatedFeedbacks = await _service.GetPaginatedAsync(pagination);
+            return OkPaginatedResponse(paginatedFeedbacks, "Feedbacks retrieved successfully");
         }
 
         // GET: api/feedback/{id}

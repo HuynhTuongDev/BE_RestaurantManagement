@@ -1,4 +1,5 @@
 using RestaurantManagement.Domain.DTOs;
+using RestaurantManagement.Domain.DTOs.Common;
 using RestaurantManagement.Domain.Entities;
 
 namespace RestaurantManagement.Application.Services
@@ -15,6 +16,8 @@ namespace RestaurantManagement.Application.Services
 
         Task<PaymentListResponse> GetAllPaymentsAsync();
 
+        Task<PaginatedResponse<PaymentDto>> GetPaginatedAsync(PaginationRequest pagination);
+
         Task<IEnumerable<PaymentDto>> GetPaymentsByStatusAsync(PaymentStatus status);
 
         // Update payment status
@@ -26,6 +29,8 @@ namespace RestaurantManagement.Application.Services
         // Search and analytics
         Task<IEnumerable<PaymentDto>> SearchPaymentsByTransactionCodeAsync(string transactionCode);
 
+        Task<PaginatedResponse<PaymentDto>> SearchPaginatedAsync(string transactionCode, PaginationRequest pagination);
+
         Task<IEnumerable<PaymentDto>> GetPaymentsByDateRangeAsync(DateTime startDate, DateTime endDate);
 
         Task<decimal> GetTotalRevenueAsync();
@@ -36,25 +41,4 @@ namespace RestaurantManagement.Application.Services
         Task<bool> VerifyPaymentAsync(int paymentId, string transactionCode);
     }
 
-    /// <summary>
-    /// DTO for payment statistics
-    /// </summary>
-    public class PaymentStatisticsDto
-    {
-        public decimal TotalCompleted { get; set; }
-
-        public decimal TotalPending { get; set; }
-
-        public decimal TotalFailed { get; set; }
-
-        public int CountCompleted { get; set; }
-
-        public int CountPending { get; set; }
-
-        public int CountFailed { get; set; }
-
-        public decimal TotalRevenue { get; set; }
-
-        public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
-    }
 }

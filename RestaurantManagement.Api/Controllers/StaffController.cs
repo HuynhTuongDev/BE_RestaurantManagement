@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using RestaurantManagement.Api.Controllers.Base;
 using RestaurantManagement.Application.Services.IUserService;
+using RestaurantManagement.Domain.DTOs.Common;
 using RestaurantManagement.Domain.DTOs.UserDTOs;
 
 namespace RestaurantManagement.Api.Controllers
@@ -23,19 +24,19 @@ namespace RestaurantManagement.Api.Controllers
         /// Create a new staff member
         /// </summary>
         [HttpPost]
-        [ProducesResponseType(typeof(StaffResponse), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateStaff([FromBody] StaffCreateRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequestResponse("Invalid staff data");
 
-            var result = await _staffService.CreateStaffAsync(request);
+            var (success, message, staff) = await _staffService.CreateStaffAsync(request);
 
-            if (result.Success)
-                return CreatedResponse(nameof(GetStaff), result.Staff!.Id, result, "Staff created successfully");
+            if (success)
+                return CreatedResponse(nameof(GetStaff), staff!.Id, staff, message);
 
-            return BadRequestResponse(result.Message);
+            return BadRequestResponse(message);
         }
 
         /// <summary>
@@ -47,6 +48,17 @@ namespace RestaurantManagement.Api.Controllers
         {
             var staff = await _staffService.GetAllStaffAsync();
             return OkListResponse(staff, "Staff retrieved successfully");
+        }
+
+        /// <summary>
+        /// Get paginated staff members
+        /// </summary>
+        [HttpGet("paginated")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetPaginatedStaff([FromQuery] PaginationRequest pagination)
+        {
+            var paginatedStaff = await _staffService.GetPaginatedAsync(pagination);
+            return OkPaginatedResponse(paginatedStaff, "Staff retrieved successfully");
         }
 
         /// <summary>
@@ -76,12 +88,12 @@ namespace RestaurantManagement.Api.Controllers
             if (!ModelState.IsValid)
                 return BadRequestResponse("Invalid staff data");
 
-            var result = await _staffService.UpdateStaffAsync(id, request);
+            var (success, message, staff) = await _staffService.UpdateStaffAsync(id, request);
 
-            if (result.Success)
-                return OkResponse(result, "Staff updated successfully");
+            if (success)
+                return OkResponse(staff!, message);
 
-            return BadRequestResponse(result.Message);
+            return BadRequestResponse(message);
         }
 
         /// <summary>
@@ -113,6 +125,23 @@ namespace RestaurantManagement.Api.Controllers
 
             var staff = await _staffService.SearchStaffAsync(keyword);
             return OkListResponse(staff, "Search completed successfully");
+        }
+
+        /// <summary>
+        /// Search staff members with pagination
+        /// </summary>
+        [HttpGet("search/paginated")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> SearchPaginatedStaff(
+            [FromQuery] string keyword,
+            [FromQuery] PaginationRequest pagination)
+        {
+            if (string.IsNullOrWhiteSpace(keyword))
+                return BadRequestResponse("Keyword is required");
+
+            var paginatedStaff = await _staffService.SearchPaginatedAsync(keyword, pagination);
+            return OkPaginatedResponse(paginatedStaff, "Search completed successfully");
         }
     }
 }

@@ -110,4 +110,25 @@ namespace RestaurantManagement.Domain.DTOs
         [Required]
         public PaymentStatus Status { get; set; }
     }
+    /// <summary>
+    /// DTO for payment statistics
+    /// </summary>
+    public class PaymentStatisticsDto
+    {
+        public decimal TotalCompleted { get; set; }
+
+        public decimal TotalPending { get; set; }
+
+        public decimal TotalFailed { get; set; }
+
+        public int CountCompleted { get; set; }
+
+        public int CountPending { get; set; }
+
+        public int CountFailed { get; set; }
+
+        public decimal TotalRevenue { get; set; }
+
+        public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
+    }
 }

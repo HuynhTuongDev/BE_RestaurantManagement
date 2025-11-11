@@ -1,4 +1,5 @@
 using RestaurantManagement.Domain.DTOs;
+using RestaurantManagement.Domain.DTOs.Common;
 using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
 using RestaurantManagement.Application.Services;
@@ -219,6 +220,53 @@ namespace RestaurantManagement.Infrastructure.Services
             // Update payment status to completed if verified
             await _paymentRepository.UpdatePaymentStatusAsync(paymentId, PaymentStatus.Completed);
             return true;
+        }
+
+        public async Task<PaginatedResponse<PaymentDto>> GetPaginatedAsync(PaginationRequest pagination)
+        {
+            var allPayments = await _paymentRepository.GetAllPaymentsAsync();
+            
+            var totalCount = allPayments.Count();
+            var paginatedData = allPayments
+                .Skip(pagination.SkipCount)
+                .Take(pagination.PageSize)
+                .Select(MapToPaymentDto)
+                .ToList();
+
+            return PaginatedResponse<PaymentDto>.Create(
+                paginatedData,
+                pagination.PageNumber,
+                pagination.PageSize,
+                totalCount);
+        }
+
+        public async Task<PaginatedResponse<PaymentDto>> SearchPaginatedAsync(
+            string transactionCode,
+            PaginationRequest pagination)
+        {
+            if (string.IsNullOrWhiteSpace(transactionCode))
+            {
+                return PaginatedResponse<PaymentDto>.Create(
+                    new List<PaymentDto>(),
+                    pagination.PageNumber,
+                    pagination.PageSize,
+                    0);
+            }
+
+            var payments = await _paymentRepository.SearchPaymentsByTransactionCodeAsync(transactionCode);
+
+            var totalCount = payments.Count();
+            var paginatedData = payments
+                .Skip(pagination.SkipCount)
+                .Take(pagination.PageSize)
+                .Select(MapToPaymentDto)
+                .ToList();
+
+            return PaginatedResponse<PaymentDto>.Create(
+                paginatedData,
+                pagination.PageNumber,
+                pagination.PageSize,
+                totalCount);
         }
 
         // Helper method
