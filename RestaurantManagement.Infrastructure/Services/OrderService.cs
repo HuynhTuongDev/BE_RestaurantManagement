@@ -16,11 +16,16 @@ namespace RestaurantManagement.Infrastructure.Services
     public class OrderService : IOrderService
     {
         private readonly IOrderRepository _orderRepository;
+        private readonly IMenuItemRepository _menuItemRepository; // Add MenuItem repository
         private readonly ILogger<OrderService> _logger;
 
-        public OrderService(IOrderRepository orderRepository, ILogger<OrderService> logger)
+        public OrderService(
+            IOrderRepository orderRepository, 
+            IMenuItemRepository menuItemRepository, // Inject MenuItem repository
+            ILogger<OrderService> logger)
         {
             _orderRepository = orderRepository;
+            _menuItemRepository = menuItemRepository;
             _logger = logger;
         }
 
@@ -36,17 +41,54 @@ namespace RestaurantManagement.Infrastructure.Services
                     OrderTime = DateTime.UtcNow
                 };
 
+                decimal totalAmount = 0;
+
+                // Process each order item
                 foreach (var item in request.Items)
                 {
-                    order.OrderDetails.Add(new OrderDetail
+                    // Get MenuItem to retrieve current price
+                    var menuItem = await _menuItemRepository.GetByIdAsync(item.MenuItemId);
+                    if (menuItem == null)
+                    {
+                        _logger.LogWarning("MenuItem {MenuItemId} not found", item.MenuItemId);
+                        return new OrderResponse 
+                        { 
+                            Success = false, 
+                            Message = $"MenuItem with ID {item.MenuItemId} not found" 
+                        };
+                    }
+
+                    // Check if MenuItem is available
+                    if (menuItem.Status != MenuItemStatus.Available)
+                    {
+                        _logger.LogWarning("MenuItem {MenuItemId} is not available", item.MenuItemId);
+                        return new OrderResponse 
+                        { 
+                            Success = false, 
+                            Message = $"MenuItem '{menuItem.Name}' is not available" 
+                        };
+                    }
+
+                    // Create OrderDetail with current price
+                    var orderDetail = new OrderDetail
                     {
                         MenuItemId = item.MenuItemId,
-                        Quantity = item.Quantity
-                    });
+                        Quantity = item.Quantity,
+                        Price = menuItem.Price // Set current price from MenuItem
+                    };
+
+                    order.OrderDetails.Add(orderDetail);
+                    totalAmount += menuItem.Price * item.Quantity; // Calculate total
                 }
+
+                // Set total amount
+                order.TotalAmount = totalAmount;
 
                 await _orderRepository.AddAsync(order);
                 await _orderRepository.SaveChangesAsync();
+
+                _logger.LogInformation("Order created successfully with ID {OrderId}, Total: {TotalAmount}", 
+                    order.Id, order.TotalAmount);
 
                 return new OrderResponse
                 {
@@ -196,18 +238,56 @@ namespace RestaurantManagement.Infrastructure.Services
                 if (order.Status != OrderStatus.Pending)
                     return new OrderResponse { Success = false, Message = "Only pending orders can be updated" };
 
+                // Clear existing details
                 order.OrderDetails.Clear();
+                decimal totalAmount = 0;
+
+                // Add new order details with current prices
                 foreach (var item in request.Items)
                 {
-                    order.OrderDetails.Add(new OrderDetail
+                    // Get MenuItem to retrieve current price
+                    var menuItem = await _menuItemRepository.GetByIdAsync(item.MenuItemId);
+                    if (menuItem == null)
+                    {
+                        _logger.LogWarning("MenuItem {MenuItemId} not found", item.MenuItemId);
+                        return new OrderResponse 
+                        { 
+                            Success = false, 
+                            Message = $"MenuItem with ID {item.MenuItemId} not found" 
+                        };
+                    }
+
+                    // Check if MenuItem is available
+                    if (menuItem.Status != MenuItemStatus.Available)
+                    {
+                        _logger.LogWarning("MenuItem {MenuItemId} is not available", item.MenuItemId);
+                        return new OrderResponse 
+                        { 
+                            Success = false, 
+                            Message = $"MenuItem '{menuItem.Name}' is not available" 
+                        };
+                    }
+
+                    // Create OrderDetail with current price
+                    var orderDetail = new OrderDetail
                     {
                         MenuItemId = item.MenuItemId,
-                        Quantity = item.Quantity
-                    });
+                        Quantity = item.Quantity,
+                        Price = menuItem.Price // Set current price from MenuItem
+                    };
+
+                    order.OrderDetails.Add(orderDetail);
+                    totalAmount += menuItem.Price * item.Quantity; // Calculate total
                 }
+
+                // Update total amount
+                order.TotalAmount = totalAmount;
 
                 await _orderRepository.UpdateAsync(order);
                 await _orderRepository.SaveChangesAsync();
+
+                _logger.LogInformation("Order {OrderId} updated successfully, New Total: {TotalAmount}", 
+                    id, order.TotalAmount);
 
                 return new OrderResponse
                 {
@@ -249,6 +329,7 @@ namespace RestaurantManagement.Infrastructure.Services
 
             return order.Status;
         }
+
         public async Task<OrderResponse> UpdateOrderStatusAsync(int id, OrderStatus status)
         {
             try
@@ -302,7 +383,5 @@ namespace RestaurantManagement.Infrastructure.Services
                 }).ToList()
             };
         }
-
     }
-
 }
