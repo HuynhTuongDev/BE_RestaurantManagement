@@ -9,7 +9,7 @@ namespace RestaurantManagement.Api.Controllers
 {
     [Route("api/promotion")]
     [ApiVersion("1.0")]
-    [Authorize(Roles = "Admin,Staff")] // Only Admin and Staff can manage promotions
+    [Authorize] // Only Admin and Staff can manage promotions
     public class PromotionController : BaseController
     {
         private readonly IPromotionService _promotionService;
