@@ -4,7 +4,6 @@ using RestaurantManagement.Api.Controllers.Base;
 using RestaurantManagement.Application.Services;
 using RestaurantManagement.Domain.DTOs;
 using RestaurantManagement.Domain.DTOs.Common;
-using RestaurantManagement.Domain.Entities;
 
 namespace RestaurantManagement.Api.Controllers
 {
@@ -104,15 +103,7 @@ namespace RestaurantManagement.Api.Controllers
             if (!ModelState.IsValid)
                 return BadRequestResponse("Invalid menu item data");
 
-            var dish = new MenuItem
-            {
-                Name = request.Name,
-                Description = request.Description,
-                Price = request.Price,
-                Category = request.Category
-            };
-
-            var created = await _menuItemServices.AddAsync(dish);
+            var created = await _menuItemServices.AddAsync(request);
             return CreatedResponse(nameof(GetDish), created.Id, created, "Menu item created successfully");
         }
 
@@ -128,17 +119,15 @@ namespace RestaurantManagement.Api.Controllers
             if (!ModelState.IsValid)
                 return BadRequestResponse("Invalid menu item data");
 
-            var dish = await _menuItemServices.GetByIdAsync(id);
-            if (dish == null)
+            try
+            {
+                var updated = await _menuItemServices.UpdateAsync(id, request);
+                return OkResponse(updated, "Menu item updated successfully");
+            }
+            catch (KeyNotFoundException)
+            {
                 return NotFoundResponse($"MenuItem {id} not found");
-
-            dish.Name = request.Name;
-            dish.Description = request.Description;
-            dish.Price = request.Price;
-            dish.Category = request.Category;
-
-            await _menuItemServices.UpdateAsync(dish);
-            return OkResponse(dish, "Menu item updated successfully");
+            }
         }
 
         /// <summary>
@@ -149,12 +138,15 @@ namespace RestaurantManagement.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteDish(int id)
         {
-            var dish = await _menuItemServices.GetByIdAsync(id);
-            if (dish == null) 
+            try
+            {
+                await _menuItemServices.DeleteAsync(id);
+                return OkResponse(new { deleted = true }, "Menu item deleted successfully");
+            }
+            catch (KeyNotFoundException)
+            {
                 return NotFoundResponse($"MenuItem {id} not found");
-
-            await _menuItemServices.DeleteAsync(id);
-            return OkResponse(new { deleted = true }, "Menu item deleted successfully");
+            }
         }
     }
 }

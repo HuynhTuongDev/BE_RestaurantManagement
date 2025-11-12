@@ -19,11 +19,32 @@ using RestaurantManagement.Infrastructure.Services;
 using RestaurantManagement.Infrastructure.Services.System;
 using RestaurantManagement.Infrastructure.Services.UserServices;
 using System.Text;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add Controllers
-builder.Services.AddControllers();
+// Add Controllers with JSON configuration to handle reference cycles
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Handle reference cycles
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        
+        // Alternative: Preserve references (creates $id and $ref)
+        // options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
+        
+        // Optional: Pretty print JSON in development
+        options.JsonSerializerOptions.WriteIndented = builder.Environment.IsDevelopment();
+        
+        // Optional: Handle property naming policy
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        
+        // Optional: Include fields (if needed)
+        options.JsonSerializerOptions.IncludeFields = false;
+        
+        // Optional: Handle enums as strings
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 
 // CORS
 builder.Services.AddCors(options =>

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using RestaurantManagement.Application.Services;
+using RestaurantManagement.Domain.DTOs;
 using RestaurantManagement.Domain.DTOs.Common;
 using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
@@ -24,14 +25,15 @@ namespace RestaurantManagement.Infrastructure.Services
         /// <summary>
         /// Get all menu items
         /// </summary>
-        public async Task<IEnumerable<MenuItem>> GetAllAsync()
+        public async Task<IEnumerable<MenuItemDto>> GetAllAsync()
         {
             try
             {
                 _logger.LogInformation("Getting all MenuItems");
                 var items = await _menuItemRepository.GetAllAsync();
-                _logger.LogInformation("Successfully retrieved {Count} MenuItems", items.Count());
-                return items;
+                var result = items.Select(MapToDto);
+                _logger.LogInformation("Successfully retrieved {Count} MenuItems", result.Count());
+                return result;
             }
             catch (Exception ex)
             {
@@ -43,7 +45,7 @@ namespace RestaurantManagement.Infrastructure.Services
         /// <summary>
         /// Get paginated menu items
         /// </summary>
-        public async Task<PaginatedResponse<MenuItem>> GetPaginatedAsync(PaginationRequest pagination)
+        public async Task<PaginatedResponse<MenuItemDto>> GetPaginatedAsync(PaginationRequest pagination)
         {
             try
             {
@@ -62,14 +64,22 @@ namespace RestaurantManagement.Infrastructure.Services
 
                 var paginatedItems = await baseRepo.GetPaginatedAsync(pagination);
 
+                // Map to DTOs
+                var mappedData = paginatedItems.Data.Select(MapToDto);
+                var result = PaginatedResponse<MenuItemDto>.Create(
+                    mappedData,
+                    paginatedItems.PageNumber,
+                    paginatedItems.PageSize,
+                    paginatedItems.TotalRecords);
+
                 _logger.LogInformation(
                     "Retrieved {Count} menu items out of {Total} - Page {PageNumber}/{TotalPages}",
-                    paginatedItems.Data.Count(),
-                    paginatedItems.TotalRecords,
-                    paginatedItems.PageNumber,
-                    paginatedItems.TotalPages);
+                    result.Data.Count(),
+                    result.TotalRecords,
+                    result.PageNumber,
+                    result.TotalPages);
 
-                return paginatedItems;
+                return result;
             }
             catch (Exception ex)
             {
@@ -81,19 +91,28 @@ namespace RestaurantManagement.Infrastructure.Services
         /// <summary>
         /// Add menu item
         /// </summary>
-        public async Task<MenuItem> AddAsync(MenuItem item)
+        public async Task<MenuItemDto> AddAsync(MenuItemCreateDto itemDto)
         {
             try
             {
-                _logger.LogInformation("Creating MenuItem: {Name}", item.Name);
+                _logger.LogInformation("Creating MenuItem: {Name}", itemDto.Name);
 
-                ValidateMenuItem(item);
+                ValidateMenuItemDto(itemDto);
+
+                var item = new MenuItem
+                {
+                    Name = itemDto.Name,
+                    Description = itemDto.Description,
+                    Price = itemDto.Price,
+                    Category = itemDto.Category,
+                    Status = MenuItemStatus.Available
+                };
 
                 await _menuItemRepository.AddAsync(item);
 
                 _logger.LogInformation("Successfully created MenuItem: {Name}", item.Name);
 
-                return item;
+                return MapToDto(item);
             }
             catch (Exception ex)
             {
@@ -132,7 +151,7 @@ namespace RestaurantManagement.Infrastructure.Services
         /// <summary>
         /// Get menu item by id
         /// </summary>
-        public async Task<MenuItem?> GetByIdAsync(int id)
+        public async Task<MenuItemDto?> GetByIdAsync(int id)
         {
             try
             {
@@ -141,11 +160,13 @@ namespace RestaurantManagement.Infrastructure.Services
                 var item = await _menuItemRepository.GetByIdAsync(id);
                 
                 if (item == null)
+                {
                     _logger.LogWarning("MenuItem {MenuItemId} not found", id);
-                else
-                    _logger.LogInformation("Successfully retrieved MenuItem {MenuItemId}", id);
+                    return null;
+                }
 
-                return item;
+                _logger.LogInformation("Successfully retrieved MenuItem {MenuItemId}", id);
+                return MapToDto(item);
             }
             catch (Exception ex)
             {
@@ -157,7 +178,7 @@ namespace RestaurantManagement.Infrastructure.Services
         /// <summary>
         /// Search menu items by keyword
         /// </summary>
-        public async Task<IEnumerable<MenuItem>> SearchAsync(string keyword)
+        public async Task<IEnumerable<MenuItemDto>> SearchAsync(string keyword)
         {
             try
             {
@@ -166,12 +187,13 @@ namespace RestaurantManagement.Infrastructure.Services
                 if (string.IsNullOrWhiteSpace(keyword))
                 {
                     _logger.LogWarning("Search keyword is empty");
-                    return new List<MenuItem>();
+                    return new List<MenuItemDto>();
                 }
 
                 var items = await _menuItemRepository.SearchAsync(keyword);
-                _logger.LogInformation("Search found {Count} MenuItems", items.Count());
-                return items;
+                var result = items.Select(MapToDto);
+                _logger.LogInformation("Search found {Count} MenuItems", result.Count());
+                return result;
             }
             catch (Exception ex)
             {
@@ -183,7 +205,7 @@ namespace RestaurantManagement.Infrastructure.Services
         /// <summary>
         /// Search menu items with pagination
         /// </summary>
-        public async Task<PaginatedResponse<MenuItem>> SearchPaginatedAsync(
+        public async Task<PaginatedResponse<MenuItemDto>> SearchPaginatedAsync(
             string keyword,
             PaginationRequest pagination)
         {
@@ -198,8 +220,8 @@ namespace RestaurantManagement.Infrastructure.Services
                 if (string.IsNullOrWhiteSpace(keyword))
                 {
                     _logger.LogWarning("Search keyword is empty");
-                    return PaginatedResponse<MenuItem>.Create(
-                        new List<MenuItem>(),
+                    return PaginatedResponse<MenuItemDto>.Create(
+                        new List<MenuItemDto>(),
                         pagination.PageNumber,
                         pagination.PageSize,
                         0);
@@ -207,14 +229,15 @@ namespace RestaurantManagement.Infrastructure.Services
 
                 var allItems = await _menuItemRepository.SearchAsync(keyword);
 
-                // Calculate pagination
+                // Calculate pagination and map to DTOs
                 var totalCount = allItems.Count();
                 var paginatedData = allItems
                     .Skip(pagination.SkipCount)
                     .Take(pagination.PageSize)
+                    .Select(MapToDto)
                     .ToList();
 
-                var result = PaginatedResponse<MenuItem>.Create(
+                var result = PaginatedResponse<MenuItemDto>.Create(
                     paginatedData,
                     pagination.PageNumber,
                     pagination.PageSize,
@@ -238,51 +261,75 @@ namespace RestaurantManagement.Infrastructure.Services
         /// <summary>
         /// Update menu item
         /// </summary>
-        public async Task UpdateAsync(MenuItem item)
+        public async Task<MenuItemDto> UpdateAsync(int id, MenuItemCreateDto itemDto)
         {
             try
             {
-                _logger.LogInformation("Updating MenuItem {MenuItemId}", item.Id);
+                _logger.LogInformation("Updating MenuItem {MenuItemId}", id);
 
-                var existing = await _menuItemRepository.GetByIdAsync(item.Id);
+                var existing = await _menuItemRepository.GetByIdAsync(id);
                 if (existing == null)
                 {
-                    _logger.LogWarning("MenuItem {MenuItemId} not found", item.Id);
-                    throw new KeyNotFoundException($"MenuItem {item.Id} not found");
+                    _logger.LogWarning("MenuItem {MenuItemId} not found", id);
+                    throw new KeyNotFoundException($"MenuItem {id} not found");
                 }
 
-                ValidateMenuItem(item);
+                ValidateMenuItemDto(itemDto);
 
-                existing.Name = item.Name;
-                existing.Description = item.Description;
-                existing.Price = item.Price;
-                existing.Category = item.Category;
+                existing.Name = itemDto.Name;
+                existing.Description = itemDto.Description;
+                existing.Price = itemDto.Price;
+                existing.Category = itemDto.Category;
 
                 await _menuItemRepository.UpdateAsync(existing);
 
-                _logger.LogInformation("Successfully updated MenuItem {MenuItemId}", item.Id);
+                _logger.LogInformation("Successfully updated MenuItem {MenuItemId}", id);
+                
+                return MapToDto(existing);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating MenuItem {MenuItemId}", item.Id);
+                _logger.LogError(ex, "Error updating MenuItem {MenuItemId}", id);
                 throw;
             }
         }
 
         /// <summary>
-        /// Validate menu item
+        /// Map MenuItem entity to DTO
         /// </summary>
-        private void ValidateMenuItem(MenuItem item)
+        private static MenuItemDto MapToDto(MenuItem item)
         {
-            _logger.LogDebug("Validating MenuItem");
+            return new MenuItemDto
+            {
+                Id = item.Id,
+                Name = item.Name,
+                Description = item.Description,
+                Price = item.Price,
+                Category = item.Category,
+                Status = item.Status.ToString(),
+                Images = item.Images?.Select(img => new MenuItemImageDto
+                {
+                    Id = img.Id,
+                    ImageUrl = img.ImageUrl,
+                    MenuItemId = img.MenuItemId
+                }).ToList() ?? new List<MenuItemImageDto>()
+            };
+        }
 
-            if (string.IsNullOrWhiteSpace(item.Name))
+        /// <summary>
+        /// Validate menu item DTO
+        /// </summary>
+        private void ValidateMenuItemDto(MenuItemCreateDto itemDto)
+        {
+            _logger.LogDebug("Validating MenuItemDto");
+
+            if (string.IsNullOrWhiteSpace(itemDto.Name))
                 throw new ArgumentException("MenuItem name is required");
 
-            if (item.Price <= 0)
+            if (itemDto.Price <= 0)
                 throw new ArgumentException("MenuItem price must be greater than 0");
 
-            if (string.IsNullOrWhiteSpace(item.Category))
+            if (string.IsNullOrWhiteSpace(itemDto.Category))
                 throw new ArgumentException("MenuItem category is required");
         }
     }
