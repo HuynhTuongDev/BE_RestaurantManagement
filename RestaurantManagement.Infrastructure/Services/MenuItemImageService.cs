@@ -3,6 +3,7 @@ using CloudinaryDotNet.Actions;
 using Microsoft.Extensions.Logging;
 using RestaurantManagement.Application.Services;
 using RestaurantManagement.Application.Services.System;
+using RestaurantManagement.Domain.DTOs;
 using RestaurantManagement.Domain.DTOs.Common;
 using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
@@ -31,7 +32,7 @@ namespace RestaurantManagement.Infrastructure.Services
             _cloudinary = cloudinary;
         }
 
-        public async Task<MenuItemImage> UploadMenuItemImageAsync(int menuItemId, Stream fileStream, string fileName, CancellationToken cancellationToken = default)
+        public async Task<MenuItemImageDto> UploadMenuItemImageAsync(int menuItemId, Stream fileStream, string fileName, CancellationToken cancellationToken = default)
         {
             // Validate MenuItem exists
             var menuItem = await _menuItemRepository.GetByIdAsync(menuItemId);
@@ -62,7 +63,7 @@ namespace RestaurantManagement.Infrastructure.Services
                 // Save to database
                 await _menuItemImageRepository.AddAsync(menuImage);
                 _logger.LogInformation("Successfully uploaded image for MenuItem {MenuItemId}: {ImageUrl}", menuItemId, imageUrl);
-                return menuImage;
+                return MapToDto(menuImage);
             }
             catch (Exception ex)
             {
@@ -75,11 +76,12 @@ namespace RestaurantManagement.Infrastructure.Services
             }
         }
 
-        public async Task<MenuItemImage?> GetImageByIdAsync(int imageId)
+        public async Task<MenuItemImageDto?> GetImageByIdAsync(int imageId)
         {
             try
             {
-                return await _menuItemImageRepository.GetByIdAsync(imageId);
+                var image = await _menuItemImageRepository.GetByIdAsync(imageId);
+                return image != null ? MapToDto(image) : null;
             }
             catch (Exception ex)
             {
@@ -88,7 +90,7 @@ namespace RestaurantManagement.Infrastructure.Services
             }
         }
 
-        public async Task<IEnumerable<MenuItemImage>> GetImagesByMenuItemIdAsync(int menuItemId)
+        public async Task<IEnumerable<MenuItemImageDto>> GetImagesByMenuItemIdAsync(int menuItemId)
         {
             try
             {
@@ -97,7 +99,8 @@ namespace RestaurantManagement.Infrastructure.Services
                 if (menuItem == null)
                     throw new KeyNotFoundException($"MenuItem with ID {menuItemId} not found");
 
-                return await _menuItemImageRepository.GetByMenuItemIdAsync(menuItemId);
+                var images = await _menuItemImageRepository.GetByMenuItemIdAsync(menuItemId);
+                return images.Select(MapToDto);
             }
             catch (Exception ex)
             {
@@ -106,7 +109,7 @@ namespace RestaurantManagement.Infrastructure.Services
             }
         }
 
-        public async Task<PaginatedResponse<MenuItemImage>> GetPaginatedImagesByMenuItemIdAsync(int menuItemId, PaginationRequest pagination)
+        public async Task<PaginatedResponse<MenuItemImageDto>> GetPaginatedImagesByMenuItemIdAsync(int menuItemId, PaginationRequest pagination)
         {
             try
             {
@@ -122,9 +125,10 @@ namespace RestaurantManagement.Infrastructure.Services
                 var paginatedData = imageList
                     .Skip(pagination.SkipCount)
                     .Take(pagination.PageSize)
+                    .Select(MapToDto)
                     .ToList();
 
-                return PaginatedResponse<MenuItemImage>.Create(
+                return PaginatedResponse<MenuItemImageDto>.Create(
                     paginatedData,
                     pagination.PageNumber,
                     pagination.PageSize,
@@ -157,6 +161,19 @@ namespace RestaurantManagement.Infrastructure.Services
                 _logger.LogError(ex, "Error deleting image {ImageId}", imageId);
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Map MenuItemImage entity to DTO
+        /// </summary>
+        private static MenuItemImageDto MapToDto(MenuItemImage image)
+        {
+            return new MenuItemImageDto
+            {
+                Id = image.Id,
+                ImageUrl = image.ImageUrl,
+                MenuItemId = image.MenuItemId
+            };
         }
 
         private async Task CleanupImageAsync(string imageUrl)
