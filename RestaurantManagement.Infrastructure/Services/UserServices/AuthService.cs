@@ -1,10 +1,12 @@
 ﻿using Google.Apis.Auth;
 using Microsoft.Extensions.Configuration;
-using RestaurantManagement.Domain.DTOs;
+using RestaurantManagement.Application.Services.System;
+using RestaurantManagement.Application.Services.IUserService;
+using RestaurantManagement.Domain.DTOs.UserDTOs;
 using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
 
-namespace RestaurantManagement.Application.Services
+namespace RestaurantManagement.Infrastructure.Services.UserServices
 {
     public class AuthService : IAuthService
     {
@@ -39,7 +41,7 @@ namespace RestaurantManagement.Application.Services
 
             await _userRepository.AddAsync(user);
 
-            var token = _jwtService.GenerateToken(user);
+            var token = _jwtService.GenerateToken(user, "Access");
 
             return new AuthResponse
             {
@@ -60,7 +62,7 @@ namespace RestaurantManagement.Application.Services
 
             await _userRepository.UpdateAsync(user);
 
-            var token = _jwtService.GenerateToken(user);
+            var token = _jwtService.GenerateToken(user, "Access");
 
             return new AuthResponse
             {
@@ -98,7 +100,7 @@ namespace RestaurantManagement.Application.Services
 
                 await _userRepository.UpdateAsync(user);
 
-                var token = _jwtService.GenerateToken(user);
+                var token = _jwtService.GenerateToken(user, "Access");
                 return new AuthResponse
                 {
                     Success = true,
@@ -172,5 +174,17 @@ namespace RestaurantManagement.Application.Services
                 CreatedAt = user.CreatedAt,
             };
         }
+        public async Task<AuthResponse> UpdatePasswordAsync(string? email, ResetPasswordRequest request)
+        {
+            var user = await _userRepository.GetByEmailAsync(email!);
+            if (user == null)
+                return new AuthResponse { Success = false, Message = "User not found" };
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            await _userRepository.UpdateAsync(user);
+
+            return new AuthResponse { Success = true, Message = "Password reset successfully" };
+        }
+
     }
 }

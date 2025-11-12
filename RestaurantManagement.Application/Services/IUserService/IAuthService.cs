@@ -1,6 +1,6 @@
-﻿using RestaurantManagement.Domain.DTOs;
+﻿using RestaurantManagement.Domain.DTOs.UserDTOs;
 
-namespace RestaurantManagement.Domain.Interfaces
+namespace RestaurantManagement.Application.Services.IUserService
 {
     public interface IAuthService
     {
@@ -10,5 +10,6 @@ namespace RestaurantManagement.Domain.Interfaces
         Task<AuthResponse> UpdateProfileAsync(int userId, UpdateProfileRequest request);
         Task<AuthResponse> ChangePasswordAsync(int userId, ChangePasswordRequest request);
         Task<UserDto?> GetUserProfileAsync(int userId);
+        Task<AuthResponse> UpdatePasswordAsync(string email, ResetPasswordRequest request);
     }
 }

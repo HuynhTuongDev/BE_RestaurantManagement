@@ -12,5 +12,10 @@ namespace RestaurantManagement.Domain.Interfaces
         Task SaveChangesAsync();
         Task<bool> SoftDeleteUserAsync(int userId);
         Task<bool> LockUserAsync(int userId);
+
+        // Extended methods for Staff and Customer management
+        Task<IEnumerable<User>> GetByRoleAsync(UserRole role);
+        Task<IEnumerable<User>> SearchByKeywordAsync(string keyword, UserRole? role = null);
+        Task<User?> GetByIdWithProfileAsync(int id);
     }
 }

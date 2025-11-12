@@ -1,4 +1,4 @@
-﻿using RestaurantManagement.Domain.Entities.RestaurantManagement.Domain.Entities;
+﻿using RestaurantManagement.Domain.Entities;
 
 namespace RestaurantManagement.Domain.Entities
 {

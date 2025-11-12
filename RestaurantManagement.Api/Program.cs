@@ -4,28 +4,56 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using RestaurantManagement.Api.Extensions;
+using RestaurantManagement.Api.Middleware;
 using RestaurantManagement.Application.Services;
+using RestaurantManagement.Application.Services.IUserService;
+using RestaurantManagement.Application.Services.IUserService.RestaurantManagement.Domain.Interfaces;
+using RestaurantManagement.Application.Services.System;
 using RestaurantManagement.Application.Settings;
 using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
 using RestaurantManagement.Infrastructure.Data;
 using RestaurantManagement.Infrastructure.Repositories;
 using RestaurantManagement.Infrastructure.Services;
+using RestaurantManagement.Infrastructure.Services.System;
+using RestaurantManagement.Infrastructure.Services.UserServices;
 using System.Text;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add Controllers
-builder.Services.AddControllers();
+// Add Controllers with JSON configuration to handle reference cycles
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Handle reference cycles
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        
+        // Alternative: Preserve references (creates $id and $ref)
+        // options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
+        
+        // Optional: Pretty print JSON in development
+        options.JsonSerializerOptions.WriteIndented = builder.Environment.IsDevelopment();
+        
+        // Optional: Handle property naming policy
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        
+        // Optional: Include fields (if needed)
+        options.JsonSerializerOptions.IncludeFields = false;
+        
+        // Optional: Handle enums as strings
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 
 // CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
-         policy.WithOrigins("http://localhost:5173")
+         policy.WithOrigins("http://localhost:5173", "https://fe-restaurant-management-peach.vercel.app")
                .AllowAnyMethod()
                .AllowAnyHeader()
-               .AllowCredentials()); //
+               .AllowCredentials());
 });
 
 // JWT Settings
@@ -47,23 +75,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+// Authorization
+builder.Services.AddAuthorization();
+
 // Cloudinary settings
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("Cloudinary"));
 
-// Register Cloudinary and ImageService
+// Register Cloudinary
 builder.Services.AddSingleton(sp =>
 {
     var cfg = sp.GetRequiredService<IOptions<CloudinarySettings>>().Value;
     var account = new Account(cfg.CloudName, cfg.ApiKey, cfg.ApiSecret);
     return new Cloudinary(account) { Api = { Secure = true } };
 });
-
-
-// Register MenuItemImageService (implementation in Infrastructure)
-builder.Services.AddScoped<IMenuItemImageService, MenuItemImageService>();
-
-// Authorization
-builder.Services.AddAuthorization();
 
 // PostgreSQL DbContext
 builder.Services.AddDbContext<RestaurantDbContext>(options =>
@@ -73,13 +97,16 @@ builder.Services.AddDbContext<RestaurantDbContext>(options =>
     )
 );
 
-// Dependency Injection
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IJwtService, JwtService>();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IImageService, ImageService>();
-builder.Services.AddScoped<IMenuItemRepository, MenuItemRepository>();
-builder.Services.AddScoped<IMenuItemImageRepository, MenuItemImageRepository>();
+// ===== OPTIMIZED DEPENDENCY INJECTION =====
+// Add all services using extension methods
+builder.Services
+    .AddApplicationServices()      // IAuthService, IPaymentService, IOrderService, etc.
+    .AddInfrastructureServices()   // Repositories and infrastructure services
+    .AddSystemServices()            // IEmailService, IJwtService, IImageService, IMenuItemImageService
+    .AddAutoMapperProfiles()        // AutoMapper profiles
+    .AddCachingServices();          // Memory cache
+
+// ===== END OPTIMIZED DEPENDENCY INJECTION =====
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
@@ -115,6 +142,8 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+
+// Initialize admin user
 var adminConfig = builder.Configuration.GetSection("AdminAccount");
 var adminEmail = adminConfig["Email"] ?? throw new InvalidOperationException("Admin email configuration is missing.");
 var adminPassword = adminConfig["Password"] ?? throw new InvalidOperationException("Admin password configuration is missing.");
@@ -138,7 +167,16 @@ using (var scope = app.Services.CreateScope())
         db.SaveChanges();
     }
 }
-// Developer exception page
+
+// ===== MIDDLEWARE PIPELINE =====
+
+// Add exception handling middleware (should be first)
+app.UseExceptionHandling();
+
+// Add request logging middleware
+app.UseRequestLogging();
+
+// Configure middleware
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
@@ -150,11 +188,13 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// Middleware
+// Middleware pipeline
 app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// ===== END MIDDLEWARE PIPELINE =====
 
 app.Run();

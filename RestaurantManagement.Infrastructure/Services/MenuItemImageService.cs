@@ -1,14 +1,12 @@
-using Microsoft.Extensions.Logging;
 using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
+using Microsoft.Extensions.Logging;
 using RestaurantManagement.Application.Services;
+using RestaurantManagement.Application.Services.System;
+using RestaurantManagement.Domain.DTOs;
+using RestaurantManagement.Domain.DTOs.Common;
 using RestaurantManagement.Domain.Entities;
 using RestaurantManagement.Domain.Interfaces;
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace RestaurantManagement.Infrastructure.Services
 {
@@ -34,7 +32,7 @@ namespace RestaurantManagement.Infrastructure.Services
             _cloudinary = cloudinary;
         }
 
-        public async Task<MenuItemImage> UploadMenuItemImageAsync(int menuItemId, Stream fileStream, string fileName, CancellationToken cancellationToken = default)
+        public async Task<MenuItemImageDto> UploadMenuItemImageAsync(int menuItemId, Stream fileStream, string fileName, CancellationToken cancellationToken = default)
         {
             // Validate MenuItem exists
             var menuItem = await _menuItemRepository.GetByIdAsync(menuItemId);
@@ -65,17 +63,117 @@ namespace RestaurantManagement.Infrastructure.Services
                 // Save to database
                 await _menuItemImageRepository.AddAsync(menuImage);
                 _logger.LogInformation("Successfully uploaded image for MenuItem {MenuItemId}: {ImageUrl}", menuItemId, imageUrl);
-                return menuImage;
+                return MapToDto(menuImage);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to save MenuItemImage to database. Attempting cleanup for {ImageUrl}", imageUrl);
-                
+
                 // Cleanup uploaded image from Cloudinary
                 await CleanupImageAsync(imageUrl);
-                
+
                 throw new InvalidOperationException("Failed to save image record", ex);
             }
+        }
+
+        public async Task<MenuItemImageDto?> GetImageByIdAsync(int imageId)
+        {
+            try
+            {
+                var image = await _menuItemImageRepository.GetByIdAsync(imageId);
+                return image != null ? MapToDto(image) : null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving image {ImageId}", imageId);
+                return null;
+            }
+        }
+
+        public async Task<IEnumerable<MenuItemImageDto>> GetImagesByMenuItemIdAsync(int menuItemId)
+        {
+            try
+            {
+                // Validate MenuItem exists
+                var menuItem = await _menuItemRepository.GetByIdAsync(menuItemId);
+                if (menuItem == null)
+                    throw new KeyNotFoundException($"MenuItem with ID {menuItemId} not found");
+
+                var images = await _menuItemImageRepository.GetByMenuItemIdAsync(menuItemId);
+                return images.Select(MapToDto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving images for MenuItem {MenuItemId}", menuItemId);
+                throw;
+            }
+        }
+
+        public async Task<PaginatedResponse<MenuItemImageDto>> GetPaginatedImagesByMenuItemIdAsync(int menuItemId, PaginationRequest pagination)
+        {
+            try
+            {
+                // Validate MenuItem exists
+                var menuItem = await _menuItemRepository.GetByIdAsync(menuItemId);
+                if (menuItem == null)
+                    throw new KeyNotFoundException($"MenuItem with ID {menuItemId} not found");
+
+                var allImages = await _menuItemImageRepository.GetByMenuItemIdAsync(menuItemId);
+                var imageList = allImages.ToList();
+
+                var totalCount = imageList.Count;
+                var paginatedData = imageList
+                    .Skip(pagination.SkipCount)
+                    .Take(pagination.PageSize)
+                    .Select(MapToDto)
+                    .ToList();
+
+                return PaginatedResponse<MenuItemImageDto>.Create(
+                    paginatedData,
+                    pagination.PageNumber,
+                    pagination.PageSize,
+                    totalCount);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving paginated images for MenuItem {MenuItemId}", menuItemId);
+                throw;
+            }
+        }
+
+        public async Task<bool> DeleteImageAsync(int imageId)
+        {
+            try
+            {
+                var image = await _menuItemImageRepository.GetByIdAsync(imageId);
+                if (image == null)
+                    return false;
+
+                // Cleanup from Cloudinary
+                await CleanupImageAsync(image.ImageUrl);
+
+                // Delete from database
+                await _menuItemImageRepository.DeleteAsync(imageId);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting image {ImageId}", imageId);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Map MenuItemImage entity to DTO
+        /// </summary>
+        private static MenuItemImageDto MapToDto(MenuItemImage image)
+        {
+            return new MenuItemImageDto
+            {
+                Id = image.Id,
+                ImageUrl = image.ImageUrl,
+                MenuItemId = image.MenuItemId
+            };
         }
 
         private async Task CleanupImageAsync(string imageUrl)
@@ -87,7 +185,7 @@ namespace RestaurantManagement.Infrastructure.Services
                 {
                     var deleteParams = new DeletionParams(publicId);
                     var deleteResult = await _cloudinary.DestroyAsync(deleteParams);
-                    
+
                     if (deleteResult?.Result == "ok")
                     {
                         _logger.LogInformation("Successfully cleaned up Cloudinary image: {PublicId}", publicId);
@@ -110,7 +208,7 @@ namespace RestaurantManagement.Infrastructure.Services
             {
                 var uri = new Uri(url);
                 var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-                
+
                 if (segments.Length == 0) return null;
 
                 // Find the segment after 'upload' (Cloudinary URL structure)
@@ -119,7 +217,7 @@ namespace RestaurantManagement.Infrastructure.Services
 
                 // Skip version if present (v1234567890)
                 var startIndex = uploadIndex + 1;
-                if (startIndex < segments.Length && segments[startIndex].StartsWith("v") && 
+                if (startIndex < segments.Length && segments[startIndex].StartsWith("v") &&
                     segments[startIndex].Length > 1 && segments[startIndex].Substring(1).All(char.IsDigit))
                 {
                     startIndex++;
@@ -130,7 +228,7 @@ namespace RestaurantManagement.Infrastructure.Services
                 // Get remaining segments (folder + filename)
                 var pathSegments = segments.Skip(startIndex);
                 var fullPath = string.Join("/", pathSegments);
-                
+
                 // Remove file extension
                 var dotIndex = fullPath.LastIndexOf('.');
                 return dotIndex > 0 ? fullPath.Substring(0, dotIndex) : fullPath;

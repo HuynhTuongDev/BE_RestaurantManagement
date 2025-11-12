@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace RestaurantManagement.Domain.DTOs
+namespace RestaurantManagement.Domain.DTOs.UserDTOs
 {
     public class RegisterRequest
     {
@@ -92,5 +92,23 @@ namespace RestaurantManagement.Domain.DTOs
         [Required]
         [Compare("NewPassword")]
         public string ConfirmNewPassword { get; set; } = string.Empty;
+    }
+    public class ForgotPasswordRequest
+    {
+        [Required]
+        public string Email { get; set; } = string.Empty;
+    }
+    public class ResetPasswordRequest
+    {
+        [Required]
+        [MinLength(6)]
+        public string NewPassword { get; set; } = string.Empty;
+
+        [Required]
+        [Compare("NewPassword", ErrorMessage = "Password confirmation does not match")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+
+        [Required]
+        public string Token { get; set; } = string.Empty;
     }
 }

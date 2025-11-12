@@ -12,5 +12,6 @@ namespace RestaurantManagement.Domain.Interfaces
         Task UpdateAsync(MenuItem menuItem);
         Task DeleteAsync(int id);
         Task<bool> ExistsAsync(int id);
+        Task<IEnumerable<MenuItem>> SearchAsync(string keyword);
     }
 }
