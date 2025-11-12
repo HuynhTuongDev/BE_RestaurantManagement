@@ -56,7 +56,11 @@ namespace RestaurantManagement.Domain.DTOs
         [MinLength(1)]
         public List<OrderItemRequest> Items { get; set; } = new();
     }
-
+    public class OrderStatusUpdateRequest
+    {
+        [Required]
+        public OrderStatus Status { get; set; }
+    }
     public class OrderResponse
     {
         public bool Success { get; set; }
@@ -70,4 +74,5 @@ namespace RestaurantManagement.Domain.DTOs
         public string Message { get; set; } = string.Empty;
         public IEnumerable<OrderDto> Orders { get; set; } = new List<OrderDto>();
     }
+
 }

@@ -183,5 +183,33 @@ namespace RestaurantManagement.Api.Controllers
 
             return null;
         }
+        /// <summary>
+        /// Update order status (Admin/Staff only)
+        /// </summary>
+        [HttpPut("{id:int}/status")]
+        [Authorize(Roles = "Admin,Staff")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateOrderStatus(int id, [FromBody] OrderStatusUpdateRequest request)
+        {
+       
+            if (!ModelState.IsValid)
+                return BadRequestResponse("Invalid request data");
+
+            var result = await _orderService.UpdateOrderStatusAsync(id, request.Status);
+
+            if (result.Success)
+                return OkResponse(result, "Order status updated successfully");
+
+            
+            if (result.Message.Contains("not found"))
+                return NotFoundResponse(result.Message);
+
+            return BadRequestResponse(result.Message);
+        }
+
+
     }
+
 }

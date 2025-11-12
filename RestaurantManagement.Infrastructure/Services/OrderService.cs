@@ -249,6 +249,39 @@ namespace RestaurantManagement.Infrastructure.Services
 
             return order.Status;
         }
+        public async Task<OrderResponse> UpdateOrderStatusAsync(int id, OrderStatus status)
+        {
+            try
+            {
+                var order = await _orderRepository.GetByIdAsync(id);
+                if (order == null)
+                    return new OrderResponse { Success = false, Message = "Order not found" };
+
+                // Chỉ cho phép cập nhật nếu chưa Completed hoặc Cancelled
+                if (order.Status == OrderStatus.Completed || order.Status == OrderStatus.Cancelled)
+                    return new OrderResponse 
+                    { 
+                        Success = false, 
+                        Message = "Cannot change status of completed or cancelled order" 
+                    };
+
+                order.Status = status;
+                await _orderRepository.UpdateAsync(order);
+                await _orderRepository.SaveChangesAsync();
+                _logger.LogInformation("Updated status for Order {OrderId} to {Status}", id, status);
+                return new OrderResponse
+                {
+                    Success = true,
+                    Message = $"Order status updated to {status}",
+                    Order = MapToDto(order)
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating order status for Order {OrderId}", id);
+                return new OrderResponse { Success = false, Message = "Failed to update order status" };
+            }
+        }
 
         private OrderDto MapToDto(Order order)
         {
@@ -269,5 +302,7 @@ namespace RestaurantManagement.Infrastructure.Services
                 }).ToList()
             };
         }
+
     }
+
 }

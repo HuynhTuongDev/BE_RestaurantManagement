@@ -29,7 +29,7 @@ builder.Services.AddControllers();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
-         policy.WithOrigins("http://localhost:5173")
+         policy.WithOrigins("http://localhost:5173", "https://fe-restaurant-management-peach.vercel.app")
                .AllowAnyMethod()
                .AllowAnyHeader()
                .AllowCredentials());
